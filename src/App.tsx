@@ -1,201 +1,105 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { User } from '@supabase/supabase-js';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Camera,
   Check,
-  Clock,
+  ChevronRight,
+  Clock3,
   FileText,
   Image as ImageIcon,
   Loader2,
   LogOut,
-  Maximize2,
-  RefreshCw,
-  Scan,
-  Send,
+  Plus,
+  ScanLine,
   Sparkles,
   Trash2,
   Upload,
   X,
 } from 'lucide-react';
-import { getPublicStorageUrl, hasConfig, productImagesBucket, supabase } from './supabase';
-import { JobImageRow, JobRow, OutputFormat, SelectedImage } from './types';
+import type { User } from '@supabase/supabase-js';
+import { supabase, hasConfig } from './supabase';
 import BarcodeScanner from './components/BarcodeScanner';
-import ImageModal from './components/ImageModal';
+
+type SelectedImage = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  approved: boolean;
+};
+
+type SaveFormat = 'png' | 'jpg';
+
+type JobImage = {
+  id: string;
+  image_index: number;
+  status: string | null;
+  result_path: string | null;
+  nas_path: string | null;
+  file_name: string | null;
+  processed_at: string | null;
+  preview_expires_at: string | null;
+  storage_deleted_at: string | null;
+  error: string | null;
+};
+
+type Job = {
+  id: string;
+  product_code: string;
+  final_code: string | null;
+  margin_percentage: number | null;
+  output_format: SaveFormat | null;
+  status: string;
+  created_at: string;
+  processed_at: string | null;
+  error: string | null;
+  job_images: JobImage[];
+};
 
 const MAX_IMAGES = 5;
+const BUCKET_NAME = 'product-images';
 
-const cleanCodeValue = (value: string) => value.trim().replace(/[^a-zA-Z0-9_\-]/g, '');
-
-const getCountdown = (expiresAt?: string | null) => {
-  if (!expiresAt) return '';
-
-  const diffMs = new Date(expiresAt).getTime() - Date.now();
-  if (diffMs <= 0) return '';
-
-  const minutes = Math.floor(diffMs / 60000);
-  const seconds = Math.floor((diffMs % 60000) / 1000);
-
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-};
-
-const statusLabel = (status?: string | null) => {
-  switch (status) {
-    case 'uploading':
-      return 'Upload';
-    case 'pending':
-      return 'In coda';
-    case 'processing':
-      return 'Processing';
-    case 'done':
-      return 'Pronta';
-    case 'error':
-      return 'Errore';
-    default:
-      return 'In coda';
-  }
-};
-
-const statusClasses = (status?: string | null) => {
-  switch (status) {
-    case 'done':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-    case 'processing':
-      return 'bg-blue-50 text-blue-700 border-blue-100';
-    case 'error':
-      return 'bg-rose-50 text-rose-700 border-rose-100';
-    case 'uploading':
-      return 'bg-amber-50 text-amber-700 border-amber-100';
-    default:
-      return 'bg-slate-100 text-slate-600 border-slate-200';
-  }
-};
-
-function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const signIn = async () => {
-    setLoading(true);
-    setMessage('');
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) setMessage(error.message);
-    setLoading(false);
-  };
-
-  const signUp = async () => {
-    setLoading(true);
-    setMessage('');
-
-    const { error } = await supabase.auth.signUp({ email, password });
-
-    if (error) setMessage(error.message);
-    else setMessage('Account creato. Controlla la mail se la conferma email e attiva.');
-
-    setLoading(false);
-  };
-
-  if (!hasConfig) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F6FA] p-4">
-        <div className="max-w-md rounded-[28px] border border-rose-100 bg-white p-6 shadow-sm">
-          <AlertCircle className="h-8 w-8 text-rose-500" />
-          <h1 className="mt-4 text-lg font-bold text-slate-800">Configurazione Supabase mancante</h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-500">
-            Aggiungi VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY nelle variabili ambiente.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F6FA] p-4">
-      <div className="w-full max-w-md rounded-[28px] border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50">
-            <Sparkles className="h-6 w-6 text-[#1E60F2]" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-800">Rembg Marek</h1>
-            <p className="text-xs text-slate-500">Accesso operatore</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            placeholder="Email"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-[#1E60F2]"
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            placeholder="Password"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-[#1E60F2]"
-          />
-
-          {message && <p className="rounded-2xl bg-amber-50 p-3 text-xs text-amber-700">{message}</p>}
-
-          <button
-            type="button"
-            onClick={signIn}
-            disabled={loading || !email || !password}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1E60F2] px-4 py-3 text-sm font-bold text-white disabled:opacity-40"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Accedi
-          </button>
-
-          <button
-            type="button"
-            onClick={signUp}
-            disabled={loading || !email || !password}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 disabled:opacity-40"
-          >
-            Crea account
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function App() {
+function App() {
   const [user, setUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [currentTab, setCurrentTab] = useState<'new' | 'status'>('new');
 
-  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const [activeTab, setActiveTab] = useState<'new' | 'status'>('new');
+
   const [productCode, setProductCode] = useState('');
   const [publicCode, setPublicCode] = useState('');
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState('');
-  const [marginPercentage, setMarginPercentage] = useState(10);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('png');
-  const [uploading, setUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState('');
+  const [isConverting, setIsConverting] = useState(false);
+  const [conversionError, setConversionError] = useState('');
 
-  const [recentJobs, setRecentJobs] = useState<JobRow[]>([]);
-  const [tick, setTick] = useState(0);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [margin, setMargin] = useState(15);
+  const [saveFormat, setSaveFormat] = useState<SaveFormat>('png');
 
   const [showScanner, setShowScanner] = useState(false);
-  const [activeZoomImage, setActiveZoomImage] = useState<SelectedImage | null>(null);
-  const [activePreview, setActivePreview] = useState<{ url: string; fileName: string } | null>(null);
-  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
 
-  const cleanedProductCode = useMemo(() => cleanCodeValue(productCode), [productCode]);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+
+  const cleanedProductCode = useMemo(() => productCode.trim(), [productCode]);
+
+  const approvedImages = useMemo(
+    () => selectedImages.filter((image) => image.approved),
+    [selectedImages]
+  );
+
+  const canProcess =
+    cleanedProductCode &&
+    publicCode &&
+    approvedImages.length > 0 &&
+    !uploading &&
+    !isConverting;
 
   useEffect(() => {
     if (!hasConfig) {
@@ -204,21 +108,125 @@ export default function App() {
     }
 
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
+      setUser(data.user);
       setCheckingAuth(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      setUser(session?.user || null);
       setCheckingAuth(false);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  const loadRecentJobs = async () => {
+  useEffect(() => {
     if (!user) return;
 
+    loadRecentJobs();
+
+    const interval = setInterval(() => {
+      loadRecentJobs();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    if (!cleanedProductCode) {
+      setPublicCode('');
+      setConversionError('');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      convertProductCode(cleanedProductCode);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [cleanedProductCode]);
+
+  const handleLogin = async () => {
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      setAuthError(error.message || 'Errore accesso.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      setAuthError(error.message || 'Errore creazione account.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const convertProductCode = async (code: string) => {
+    const cleanCode = code.trim();
+
+    if (!cleanCode) return;
+
+    setIsConverting(true);
+    setPublicCode('');
+    setConversionError('');
+
+    try {
+      const response = await fetch('/api/convert-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: cleanCode }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Codice pubblico non trovato.');
+      }
+
+      const converted = String(data.public_code || data.final_code || '').trim();
+
+      if (!converted) {
+        throw new Error('Il codice pubblico non è valido.');
+      }
+
+      setPublicCode(converted);
+    } catch (error: any) {
+      setConversionError(error.message || 'Errore conversione codice.');
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  const loadRecentJobs = async () => {
     const { data, error } = await supabase
       .from('jobs')
       .select(`
@@ -231,16 +239,13 @@ export default function App() {
         created_at,
         processed_at,
         error,
-        created_by,
         job_images (
           id,
-          job_id,
           image_index,
-          original_path,
+          status,
           result_path,
           nas_path,
           file_name,
-          status,
           processed_at,
           preview_expires_at,
           storage_deleted_at,
@@ -248,174 +253,77 @@ export default function App() {
         )
       `)
       .order('created_at', { ascending: false })
-      .limit(30);
+      .limit(25);
 
-    if (!error) setRecentJobs((data || []) as JobRow[]);
-  };
-
-  useEffect(() => {
-    if (!user) return;
-
-    loadRecentJobs();
-
-    const interval = setInterval(() => {
-      loadRecentJobs();
-      setTick((value) => value + 1);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [user]);
-
-  const resetForm = () => {
-    selectedImages.forEach((img) => URL.revokeObjectURL(img.localUrl));
-    setSelectedImages([]);
-    setProductCode('');
-    setPublicCode('');
-    setLookupError('');
-    setLookupLoading(false);
-    setMarginPercentage(10);
-    setOutputFormat('png');
-    setUploadMessage('');
-  };
-
-  const handleLogout = async () => {
-    resetForm();
-    await supabase.auth.signOut();
-  };
-
-  const convertProductCode = async (code: string) => {
-    const scannedCode = cleanCodeValue(code);
-    if (!scannedCode) return;
-
-    setProductCode(scannedCode);
-    setLookupLoading(true);
-    setLookupError('');
-    setPublicCode('');
-
-    try {
-      const response = await fetch('/api/convert-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: scannedCode }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.detail || 'Codice pubblico non trovato.');
-      }
-
-      const convertedCode = String(data.public_code || data.final_code || '').trim();
-      if (!convertedCode) throw new Error('Il database non ha restituito un codice pubblico valido.');
-
-      setPublicCode(convertedCode);
-    } catch (error: any) {
-      setLookupError(error.message || 'Errore conversione codice.');
-    } finally {
-      setLookupLoading(false);
+    if (!error) {
+      setJobs((data || []) as Job[]);
     }
   };
 
-  const handleFilesAdded = (files: FileList | null) => {
+  const addFiles = (files: FileList | null) => {
     if (!files) return;
 
     const remainingSlots = MAX_IMAGES - selectedImages.length;
-    if (remainingSlots <= 0) {
-      alert('Hai gia caricato il numero massimo di immagini (5).');
-      return;
-    }
+    const acceptedFiles = Array.from(files).slice(0, remainingSlots);
 
-    const newImages: SelectedImage[] = [];
-    const filesToCount = Math.min(files.length, remainingSlots);
+    const newImages = acceptedFiles.map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      approved: true,
+    }));
 
-    for (let i = 0; i < filesToCount; i++) {
-      const file = files[i];
-      newImages.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        file,
-        localUrl: URL.createObjectURL(file),
-        approved: true,
-      });
-    }
-
-    setSelectedImages((prev) => [...prev, ...newImages]);
+    setSelectedImages((current) => [...current, ...newImages]);
   };
 
-  const handleDeleteImage = (id: string) => {
-    setSelectedImages((prev) => {
-      const target = prev.find((img) => img.id === id);
-      if (target) URL.revokeObjectURL(target.localUrl);
-      return prev.filter((img) => img.id !== id);
+  const removeImage = (id: string) => {
+    setSelectedImages((current) => {
+      const target = current.find((image) => image.id === id);
+
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+
+      return current.filter((image) => image.id !== id);
     });
   };
 
-  const handleTriggerReplace = (id: string) => {
-    setReplaceTargetId(id);
-    replaceInputRef.current?.click();
-  };
-
-  const handleFileReplaced = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !replaceTargetId) return;
-
-    const newFile = files[0];
-    setSelectedImages((prev) =>
-      prev.map((img) => {
-        if (img.id === replaceTargetId) {
-          URL.revokeObjectURL(img.localUrl);
-          return {
-            ...img,
-            file: newFile,
-            localUrl: URL.createObjectURL(newFile),
-            approved: true,
-          };
-        }
-        return img;
-      })
+  const toggleApproved = (id: string) => {
+    setSelectedImages((current) =>
+      current.map((image) =>
+        image.id === id ? { ...image, approved: !image.approved } : image
+      )
     );
-
-    e.target.value = '';
-    setReplaceTargetId(null);
   };
 
-  const handleToggleApprove = (id: string) => {
-    setSelectedImages((prev) => prev.map((img) => (img.id === id ? { ...img, approved: !img.approved } : img)));
+  const resetForm = () => {
+    selectedImages.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+
+    setProductCode('');
+    setPublicCode('');
+    setConversionError('');
+    setSelectedImages([]);
+    setMargin(15);
+    setSaveFormat('png');
   };
 
-  const uploadOriginal = async (jobId: string, code: string, img: SelectedImage, index: number) => {
-    const extension = img.file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const safeExtension = extension.replace(/[^a-z0-9]/g, '') || 'jpg';
-    const path = `originals/${jobId}/${code}-${index}.${safeExtension}`;
-
-    const { error } = await supabase.storage.from(productImagesBucket).upload(path, img.file, {
-      contentType: img.file.type || 'image/jpeg',
-      upsert: true,
-    });
-
-    if (error) throw error;
-    return path;
-  };
-
-  const handleConfermaEProcessa = async () => {
-    const approvedList = selectedImages.filter((img) => img.approved);
-
+  const handleProcess = async () => {
     if (!cleanedProductCode) {
-      alert("Il codice prodotto e obbligatorio prima d'inviare.");
+      alert('Inserisci il codice articolo.');
       return;
     }
 
     if (!publicCode) {
-      alert('Devi recuperare il codice pubblico prima di procedere.');
+      alert('Attendi il codice pubblico prima di procedere.');
       return;
     }
 
-    if (approvedList.length === 0) {
-      alert('Devi approvare almeno 1 immagine prima di procedere.');
+    if (approvedImages.length === 0) {
+      alert('Aggiungi almeno una foto.');
       return;
     }
 
     setUploading(true);
-    setUploadMessage('Creazione lavoro in corso...');
 
     try {
       const { data: job, error: jobError } = await supabase
@@ -423,9 +331,9 @@ export default function App() {
         .insert({
           product_code: cleanedProductCode,
           final_code: publicCode,
-          margin_percentage: marginPercentage,
-          output_format: outputFormat,
-          status: 'uploading',
+          margin_percentage: margin,
+          output_format: saveFormat,
+          status: 'pending',
           created_by: user?.id || null,
           error: null,
         })
@@ -433,260 +341,268 @@ export default function App() {
         .single();
 
       if (jobError) throw jobError;
-      if (!job?.id) throw new Error('Job non creato.');
 
-      const imageRows = [];
+      for (let i = 0; i < approvedImages.length; i++) {
+        const image = approvedImages[i];
+        const imageIndex = i + 1;
+        const originalExtension = image.file.name.split('.').pop() || 'jpg';
+        const originalPath = `originals/${job.id}/${cleanedProductCode}-${imageIndex}.${originalExtension}`;
 
-      for (let index = 0; index < approvedList.length; index++) {
-        setUploadMessage(`Upload foto ${index + 1}/${approvedList.length}...`);
-        const originalPath = await uploadOriginal(job.id, cleanedProductCode, approvedList[index], index + 1);
-        imageRows.push({
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(originalPath, image.file, {
+            contentType: image.file.type || 'image/jpeg',
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { error: imageError } = await supabase.from('job_images').insert({
           job_id: job.id,
-          image_index: index + 1,
+          image_index: imageIndex,
           original_path: originalPath,
           status: 'pending',
-          error: null,
         });
+
+        if (imageError) throw imageError;
       }
 
-      const { error: imagesError } = await supabase.from('job_images').insert(imageRows);
-      if (imagesError) throw imagesError;
-
-      const { error: updateError } = await supabase
-        .from('jobs')
-        .update({ status: 'pending', error: null })
-        .eq('id', job.id);
-
-      if (updateError) throw updateError;
-
       resetForm();
-      setCurrentTab('status');
-      await loadRecentJobs();
-    } catch (e: any) {
-      console.error(e);
-      alert(`Errore durante l'invio: ${e?.message || e}`);
+      setActiveTab('status');
+      loadRecentJobs();
+    } catch (error: any) {
+      alert(error.message || 'Errore durante il processo.');
     } finally {
       setUploading(false);
-      setUploadMessage('');
     }
   };
 
-  const triggerDownloadFile = async (url: string, fileName: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(url, '_blank');
-    }
+  const getCountdown = (expiresAt?: string | null) => {
+    if (!expiresAt) return '';
+
+    const diffMs = new Date(expiresAt).getTime() - Date.now();
+
+    if (diffMs <= 0) return '';
+
+    const minutes = Math.floor(diffMs / 60000);
+    const seconds = Math.floor((diffMs % 60000) / 1000);
+
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
-  const visibleJobs = recentJobs.filter((job) => (job.job_images || []).length > 0);
+  const getPreviewUrl = (image: JobImage) => {
+    const countdown = getCountdown(image.preview_expires_at);
 
-  if (checkingAuth) {
+    if (image.status !== 'done' || !image.result_path || !countdown) {
+      return '';
+    }
+
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${image.result_path}`;
+  };
+
+  if (!hasConfig) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F5F5F0] text-[#4A4A40]">
-        <Loader2 className="mb-4 h-9 w-9 animate-spin text-[#5A5A40]" />
-        <p className="text-xs font-bold uppercase tracking-widest text-[#4A4A40]/70">Inizializzazione sessione...</p>
+      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-xl border border-slate-200">
+          <AlertCircle className="h-10 w-10 text-amber-500" />
+          <h1 className="mt-4 text-xl font-black text-slate-800">
+            Configurazione Supabase mancante
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Aggiungi VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY nelle variabili ambiente.
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (!user) return <LoginScreen />;
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
-  return (
-    <div className="min-h-screen bg-[#F4F6FA] pb-12 font-sans text-slate-800 antialiased selection:bg-[#1E60F2]/10">
-      <div className="mx-auto max-w-[500px] px-4 pt-6">
-        <header className="mb-4 flex items-center justify-between rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50">
-              <Sparkles className="h-5 w-5 text-[#1E60F2]" />
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-6">
+        <div className="w-full max-w-[500px] rounded-[32px] bg-white p-8 shadow-xl border border-slate-200">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-blue-600" />
             </div>
+
             <div>
-              <h1 className="text-base font-bold leading-tight tracking-tight text-slate-800">Rembg Marek</h1>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Supabase + NAS/PC</p>
+              <h1 className="text-2xl font-black text-slate-800">Rembg USP</h1>
+              <p className="text-sm font-semibold text-slate-500">Accesso operatore</p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Scollegati"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <div className="mt-8 space-y-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-lg outline-none focus:border-blue-500"
+            />
+
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-lg outline-none focus:border-blue-500"
+            />
+
+            {authError && (
+              <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                {authError}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={authLoading}
+              className="w-full rounded-2xl bg-blue-600 px-5 py-4 text-lg font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50"
+            >
+              {authLoading ? 'Attendi...' : 'Accedi'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSignup}
+              disabled={authLoading}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-lg font-black text-slate-700 disabled:opacity-50"
+            >
+              Crea account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F3F6FB] px-4 py-8">
+      <div className="mx-auto w-full max-w-[500px] pb-20">
+        <header className="rounded-[30px] bg-white border border-slate-200 shadow-sm p-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-blue-600" />
+            </div>
+
+            <h1 className="text-2xl font-black text-slate-800">Rembg USP</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-slate-700">Utente</span>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500"
+            >
+              <LogOut className="h-6 w-6" />
+            </button>
+          </div>
         </header>
 
-        <nav className="mb-4 grid grid-cols-2 rounded-[22px] border border-slate-100 bg-white p-1 shadow-sm">
+        <div className="mt-8 rounded-[30px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => setCurrentTab('new')}
-            className={`rounded-[18px] px-3 py-3 text-xs font-bold uppercase tracking-wider transition ${
-              currentTab === 'new' ? 'bg-[#1E60F2] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
+            onClick={() => setActiveTab('new')}
+            className={`rounded-[24px] py-5 flex items-center justify-center gap-3 text-lg font-black tracking-wide transition ${
+              activeTab === 'new'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                : 'text-slate-400'
             }`}
           >
-            Nuovo Prodotto
+            <Plus className="h-6 w-6" />
+            NUOVO PRODOTTO
           </button>
+
           <button
             type="button"
-            onClick={() => setCurrentTab('status')}
-            className={`rounded-[18px] px-3 py-3 text-xs font-bold uppercase tracking-wider transition ${
-              currentTab === 'status' ? 'bg-[#1E60F2] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
+            onClick={() => setActiveTab('status')}
+            className={`rounded-[24px] py-5 flex items-center justify-center gap-3 text-lg font-black tracking-wide transition ${
+              activeTab === 'status'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                : 'text-slate-400'
             }`}
           >
-            Stato Lavori
+            <Clock3 className="h-6 w-6" />
+            STATO LAVORI
           </button>
-        </nav>
+        </div>
 
-        {currentTab === 'new' && (
-          <div className="space-y-4">
-            <section className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-[#1E60F2]">
-                  <Scan className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-800">Codice prodotto</h2>
-                  <p className="text-[11px] text-slate-400">Scansiona o inserisci il codice originale</p>
-                </div>
-              </div>
+        {activeTab === 'new' && (
+          <>
+            <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+              <h2 className="text-lg font-black tracking-wide text-slate-800">
+                CODICE ARTICOLO
+              </h2>
 
-              <div className="flex gap-2">
-                <input
-                  value={productCode}
-                  onChange={(e) => {
-                    setProductCode(e.target.value);
-                    setPublicCode('');
-                    setLookupError('');
-                  }}
-                  placeholder="Es. VK02138"
-                  className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm font-bold text-slate-700 outline-none focus:border-[#1E60F2]"
-                />
+              <div className="mt-6 flex gap-3">
+                <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 flex items-center gap-4">
+                  <FileText className="h-7 w-7 text-slate-400" />
+
+                  <input
+                    value={productCode}
+                    onChange={(event) => {
+                      setProductCode(event.target.value);
+                      setPublicCode('');
+                      setConversionError('');
+                    }}
+                    placeholder="Es: 789403329"
+                    className="w-full bg-transparent text-xl font-bold text-slate-700 placeholder:text-slate-400 outline-none"
+                  />
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setShowScanner(true)}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1E60F2] text-white shadow-sm hover:bg-blue-700"
+                  className="h-[74px] w-[74px] rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 flex items-center justify-center"
                 >
-                  <Scan className="h-5 w-5" />
+                  <ScanLine className="h-8 w-8" />
                 </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => convertProductCode(cleanedProductCode)}
-                disabled={!cleanedProductCode || lookupLoading}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
-              >
-                {lookupLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Recupera codice pubblico
-              </button>
-
-              {lookupLoading && (
-                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  Ricerca codice pubblico in corso...
+              {isConverting && (
+                <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Ricerca codice pubblico...
                 </div>
               )}
 
               {publicCode && (
-                <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                  Codice pubblico: <strong className="font-mono">{publicCode}</strong>
+                <div className="mt-4 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+                  <p className="text-xs font-black text-emerald-700 uppercase tracking-wide">
+                    Codice pubblico
+                  </p>
+                  <p className="mt-1 text-xl font-black text-emerald-800">
+                    {publicCode}
+                  </p>
                 </div>
               )}
 
-              {lookupError && (
-                <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                  {lookupError}
+              {conversionError && (
+                <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
+                  {conversionError}
                 </div>
               )}
             </section>
 
-            <section className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-500">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-800">Impostazioni output</h2>
-                  <p className="text-[11px] text-slate-400">Margine e formato finale</p>
-                </div>
-              </div>
+            <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black tracking-wide text-slate-800">
+                  FOTO
+                </h2>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">Margine prodotto</span>
-                  <span className="font-mono text-sm font-bold text-[#1E60F2]">{marginPercentage}%</span>
-                </div>
-
-                <input
-                  type="range"
-                  min="0"
-                  max="30"
-                  step="1"
-                  value={marginPercentage}
-                  onChange={(e) => setMarginPercentage(Number(e.target.value))}
-                  className="mt-3 w-full"
-                />
-
-                <div className="mt-2 flex justify-between text-[10px] text-slate-400">
-                  <span>Prodotto piu grande</span>
-                  <span>Piu margine</span>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-bold text-slate-700">Formato finale</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOutputFormat('png')}
-                    className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-                      outputFormat === 'png'
-                        ? 'bg-[#1E60F2] text-white shadow-sm'
-                        : 'border border-slate-200 bg-white text-slate-600'
-                    }`}
-                  >
-                    PNG trasparente
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOutputFormat('jpg')}
-                    className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-                      outputFormat === 'jpg'
-                        ? 'bg-[#1E60F2] text-white shadow-sm'
-                        : 'border border-slate-200 bg-white text-slate-600'
-                    }`}
-                  >
-                    JPEG bianco
-                  </button>
-                </div>
-                <p className="mt-2 text-[11px] text-slate-500">
-                  PNG mantiene trasparenza. JPEG salva con sfondo bianco.
-                </p>
-              </div>
-            </section>
-
-            <section className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-500">
-                    <Camera className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-800">Foto prodotto</h2>
-                    <p className="text-[11px] text-slate-400">Massimo {MAX_IMAGES} immagini</p>
-                  </div>
-                </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">
-                  {selectedImages.length}/{MAX_IMAGES}
+                <span className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600">
+                  {selectedImages.length} di {MAX_IMAGES}
                 </span>
               </div>
 
@@ -696,244 +612,348 @@ export default function App() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => {
-                  handleFilesAdded(e.target.files);
-                  e.target.value = '';
+                onChange={(event) => {
+                  addFiles(event.target.files);
+                  event.target.value = '';
                 }}
               />
+
               <input
-                ref={fileInputRef}
+                ref={galleryInputRef}
                 type="file"
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => {
-                  handleFilesAdded(e.target.files);
-                  e.target.value = '';
+                onChange={(event) => {
+                  addFiles(event.target.files);
+                  event.target.value = '';
                 }}
               />
-              <input
-                ref={replaceInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileReplaced}
-              />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={selectedImages.length >= MAX_IMAGES}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-[#1E60F2] px-4 py-4 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-40"
+                  className="rounded-[24px] border-2 border-dashed border-blue-300 bg-blue-50/50 p-8 flex flex-col items-center justify-center gap-4 disabled:opacity-40"
                 >
-                  <Camera className="h-4 w-4" />
-                  Scatta
+                  <div className="h-16 w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                    <Camera className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <span className="text-lg font-black text-blue-600">Scatta Foto</span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => galleryInputRef.current?.click()}
                   disabled={selectedImages.length >= MAX_IMAGES}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-700 disabled:opacity-40"
+                  className="rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 flex flex-col items-center justify-center gap-4 disabled:opacity-40"
                 >
-                  <Upload className="h-4 w-4" />
-                  Carica
+                  <div className="h-16 w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                    <Upload className="h-8 w-8 text-slate-500" />
+                  </div>
+                  <span className="text-lg font-black text-slate-600">
+                    Carica da Galleria
+                  </span>
                 </button>
               </div>
 
-              {selectedImages.length > 0 && (
-                <div className="mt-4 space-y-3">
-                  {selectedImages.map((img, index) => (
-                    <div key={img.id} className="flex gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+              {selectedImages.length === 0 ? (
+                <div className="mt-6 rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 p-10 flex flex-col items-center justify-center text-center">
+                  <ImageIcon className="h-12 w-12 text-slate-300" />
+                  <p className="mt-4 text-lg font-black text-slate-400">
+                    NESSUNA FOTO INSERITA
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-400">
+                    Aggiungi fino a 5 foto alla volta.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {selectedImages.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-3"
+                    >
+                      <img
+                        src={image.previewUrl}
+                        alt={`Foto ${index + 1}`}
+                        className="h-20 w-20 rounded-xl object-cover bg-white"
+                      />
+
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-slate-700">
+                          Foto {index + 1}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">
+                          {image.file.name}
+                        </p>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={() => setActiveZoomImage(img)}
-                        className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                        onClick={() => toggleApproved(image.id)}
+                        className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+                          image.approved
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}
                       >
-                        <img src={img.localUrl} alt={`Foto ${index + 1}`} className="h-full w-full object-cover" />
-                        <Maximize2 className="absolute bottom-1 right-1 h-4 w-4 rounded bg-white/80 p-0.5 text-slate-500" />
+                        <Check className="h-5 w-5" />
                       </button>
 
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-bold text-slate-700">Foto {index + 1}</p>
-                        <p className="mt-1 truncate text-[10px] text-slate-400">{img.file.name}</p>
-
-                        <div className="mt-3 flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleApprove(img.id)}
-                            className={`flex items-center gap-1 rounded-xl px-3 py-2 text-[10px] font-bold uppercase ${
-                              img.approved ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-500'
-                            }`}
-                          >
-                            <Check className="h-3 w-3" />
-                            {img.approved ? 'Approvata' : 'Esclusa'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleTriggerReplace(img.id)}
-                            className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold uppercase text-slate-500"
-                          >
-                            Cambia
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteImage(img.id)}
-                            className="rounded-xl bg-rose-50 px-3 py-2 text-rose-600"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(image.id)}
+                        className="h-10 w-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </section>
 
-            {uploadMessage && (
-              <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs font-bold text-blue-700">
-                {uploadMessage}
+            <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black tracking-wide text-slate-800">
+                  MARGINE
+                </h2>
+
+                <span className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-2 text-lg font-black text-blue-600">
+                  {margin}%
+                </span>
               </div>
-            )}
+
+              <div className="mt-6 grid grid-cols-6 gap-2">
+                {[10, 15, 20, 30, 40, 50].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setMargin(value)}
+                    className={`rounded-2xl border px-3 py-4 text-sm font-black ${
+                      margin === value
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                        : 'bg-white text-slate-600 border-slate-700'
+                    }`}
+                  >
+                    {value}%
+                  </button>
+                ))}
+              </div>
+
+              <div className="my-7 h-px bg-slate-100" />
+
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black tracking-wide text-slate-800">
+                  FORMATO
+                </h2>
+
+                <span className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-2 text-sm font-black text-blue-600 uppercase">
+                  {saveFormat}
+                </span>
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSaveFormat('png')}
+                  className={`rounded-2xl border px-4 py-5 text-center ${
+                    saveFormat === 'png'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                      : 'bg-white text-slate-600 border-slate-700'
+                  }`}
+                >
+                  <p className="text-xl font-black">PNG</p>
+                  <p className="mt-1 text-sm opacity-70">sfondo trasparente</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSaveFormat('jpg')}
+                  className={`rounded-2xl border px-4 py-5 text-center ${
+                    saveFormat === 'jpg'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                      : 'bg-white text-slate-600 border-slate-700'
+                  }`}
+                >
+                  <p className="text-xl font-black">JPEG</p>
+                  <p className="mt-1 text-sm opacity-70">sfondo bianco</p>
+                </button>
+              </div>
+            </section>
 
             <button
               type="button"
-              onClick={handleConfermaEProcessa}
-              disabled={uploading || !cleanedProductCode || !publicCode || selectedImages.filter((i) => i.approved).length === 0}
-              className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-[#1E60F2] px-5 py-5 text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-500/15 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleProcess}
+              disabled={!canProcess}
+              className="mt-8 w-full rounded-[26px] bg-blue-600 px-6 py-6 text-xl font-black text-white shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 disabled:bg-blue-200 disabled:text-blue-400 disabled:shadow-none"
             >
-              {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-              Processa
+              {uploading ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  Invio in corso...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-6 w-6" />
+                  Conferma e Processa
+                  <ChevronRight className="h-6 w-6" />
+                </>
+              )}
             </button>
-          </div>
+          </>
         )}
 
-        {currentTab === 'status' && (
-          <div className="space-y-4">
-            {visibleJobs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-[28px] border border-slate-100 bg-white p-8 py-12 text-center shadow-sm">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-400">
-                  <Clock className="h-6 w-6" />
-                </div>
-                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-800">Nessun lavoro attivo</h3>
-                <p className="mx-auto mt-2 max-w-[260px] text-xs leading-relaxed text-slate-400">
-                  Quando invii un prodotto, qui vedrai pending, processing e preview pronta per 10 minuti.
+        {activeTab === 'status' && (
+          <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black tracking-wide text-slate-800">
+                STATO LAVORI
+              </h2>
+
+              <button
+                type="button"
+                onClick={loadRecentJobs}
+                className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600"
+              >
+                Aggiorna
+              </button>
+            </div>
+
+            {jobs.length === 0 ? (
+              <div className="mt-6 rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 p-10 flex flex-col items-center justify-center text-center">
+                <Clock3 className="h-12 w-12 text-slate-300" />
+                <p className="mt-4 text-lg font-black text-slate-400">
+                  NESSUN LAVORO
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('new')}
-                  className="mt-6 rounded-xl bg-[#1E60F2] px-6 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-md shadow-blue-500/10"
-                >
-                  Nuovo prodotto
-                </button>
+                <p className="mt-1 text-sm font-semibold text-slate-400">
+                  I processi appariranno qui.
+                </p>
               </div>
             ) : (
-              visibleJobs.map((job) => (
-                <section key={job.id} className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-mono text-sm font-bold text-slate-800">{job.final_code || job.product_code}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">Originale: {job.product_code}</p>
-                      <p className="text-[11px] text-slate-500">
-                        Margine: {job.margin_percentage ?? 10}% - Formato: {(job.output_format || 'png').toUpperCase()}
-                      </p>
-                    </div>
-                    <span className={`rounded-full border px-3 py-1 text-[11px] font-bold ${statusClasses(job.status)}`}>
-                      {statusLabel(job.status)}
-                    </span>
-                  </div>
+              <div className="mt-6 space-y-4">
+                {jobs.flatMap((job) =>
+                  (job.job_images || []).map((image) => {
+                    const countdown = getCountdown(image.preview_expires_at);
+                    const previewUrl = getPreviewUrl(image);
 
-                  <div className="space-y-3">
-                    {(job.job_images || [])
-                      .sort((a, b) => a.image_index - b.image_index)
-                      .map((image: JobImageRow) => {
-                        const countdown = getCountdown(image.preview_expires_at);
-                        const previewUrl =
-                          image.status === 'done' && image.result_path && countdown ? getPublicStorageUrl(image.result_path) : '';
-                        const fileName = image.file_name || `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'png'}`;
-
-                        return (
-                          <div key={image.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate font-mono text-xs font-bold text-slate-700">{fileName}</p>
-                                <p className="mt-1 text-[11px] text-slate-400">Foto {image.image_index}</p>
-                              </div>
-                              <span className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${statusClasses(image.status)}`}>
-                                {statusLabel(image.status)}
-                              </span>
+                    return (
+                      <div
+                        key={image.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          {previewUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => setActivePreviewUrl(previewUrl)}
+                              className="h-20 w-20 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                            >
+                              <img
+                                src={previewUrl}
+                                alt={image.file_name || 'preview'}
+                                className="h-full w-full object-contain"
+                              />
+                            </button>
+                          ) : (
+                            <div className="h-20 w-20 rounded-xl border border-slate-200 bg-white flex items-center justify-center">
+                              {image.status === 'processing' ? (
+                                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                              ) : (
+                                <ImageIcon className="h-7 w-7 text-slate-300" />
+                              )}
                             </div>
+                          )}
 
-                            {image.status === 'processing' && (
-                              <div className="mt-3 flex items-center gap-2 text-xs font-bold text-blue-700">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Rimozione sfondo in corso...
-                              </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-sm font-black text-slate-800 truncate">
+                              {image.file_name ||
+                                `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'png'}`}
+                            </p>
+
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              Originale: {job.product_code}
+                            </p>
+
+                            <p className="text-xs font-semibold text-slate-500">
+                              Pubblico: {job.final_code || '-'}
+                            </p>
+
+                            <p className="text-xs font-semibold text-slate-500">
+                              Margine: {job.margin_percentage ?? 15}% · Formato:{' '}
+                              {(job.output_format || 'png').toUpperCase()}
+                            </p>
+
+                            {image.error && (
+                              <p className="mt-2 text-xs font-bold text-rose-600">
+                                {image.error}
+                              </p>
                             )}
 
-                            {previewUrl && (
-                              <div className="mt-3 flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => setActivePreview({ url: previewUrl, fileName })}
-                                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-[size:10px_10px]"
-                                >
-                                  <img src={previewUrl} alt={fileName} className="h-full w-full object-contain p-1" />
-                                  <Maximize2 className="absolute bottom-1 right-1 h-4 w-4 rounded bg-white/90 p-0.5 text-slate-500" />
-                                </button>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-emerald-700">Anteprima pronta</p>
-                                  <p className="mt-1 font-mono text-[11px] text-slate-500">Visibile per {countdown}</p>
-                                  <p className="mt-1 text-[11px] text-slate-400">Clicca per ingrandire</p>
-                                </div>
-                              </div>
+                            {image.status === 'done' && countdown && (
+                              <p className="mt-2 text-xs font-mono font-black text-blue-600">
+                                Preview {countdown}
+                              </p>
                             )}
-
-                            {image.error && <p className="mt-2 text-xs text-rose-600">{image.error}</p>}
                           </div>
-                        );
-                      })}
-                  </div>
-                </section>
-              ))
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${
+                              image.status === 'done'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : image.status === 'processing'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : image.status === 'error'
+                                    ? 'bg-rose-100 text-rose-700'
+                                    : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {image.status || job.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
-          </div>
+          </section>
         )}
       </div>
 
       {showScanner && (
         <BarcodeScanner
-          onScan={(code) => convertProductCode(code)}
+          onScan={(code) => {
+            setProductCode(code);
+            setShowScanner(false);
+          }}
           onClose={() => setShowScanner(false)}
         />
       )}
 
-      {activeZoomImage && (
-        <ImageModal
-          isOpen={!!activeZoomImage}
-          onClose={() => setActiveZoomImage(null)}
-          imageUrl={activeZoomImage.localUrl}
-          title={`Anteprima locale`}
-          isProcessed={false}
-          onDelete={() => {
-            handleDeleteImage(activeZoomImage.id);
-            setActiveZoomImage(null);
-          }}
-          onReplaceClick={() => handleTriggerReplace(activeZoomImage.id)}
-        />
-      )}
+      {activePreviewUrl && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative w-full max-w-3xl rounded-[28px] bg-white p-4 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setActivePreviewUrl(null)}
+              className="absolute right-4 top-4 z-10 h-11 w-11 rounded-full bg-white shadow flex items-center justify-center text-slate-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
 
-      {activePreview && (
-        <ImageModal
-          isOpen={!!activePreview}
-          onClose={() => setActivePreview(null)}
-          imageUrl={activePreview.url}
-          title={`Foto lavorata - ${activePreview.fileName}`}
-          isProcessed={true}
-          onDownload={() => triggerDownloadFile(activePreview.url, activePreview.fileName)}
-        />
+            <img
+              src={activePreviewUrl}
+              alt="Anteprima processata"
+              className="max-h-[80vh] w-full object-contain"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
+export default App;
