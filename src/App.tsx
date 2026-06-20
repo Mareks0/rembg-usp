@@ -402,10 +402,10 @@ function App() {
 
   if (!hasConfig) {
     return (
-      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-xl border border-slate-200">
-          <AlertCircle className="h-10 w-10 text-amber-500" />
-          <h1 className="mt-4 text-xl font-black text-slate-800">
+      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-5">
+        <div className="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-xl border border-slate-200">
+          <AlertCircle className="h-9 w-9 text-amber-500" />
+          <h1 className="mt-4 text-lg font-black text-slate-800">
             Configurazione Supabase mancante
           </h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -419,33 +419,33 @@ function App() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-6">
-        <div className="w-full max-w-[500px] rounded-[32px] bg-white p-8 shadow-xl border border-slate-200">
+      <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-5">
+        <div className="w-full max-w-[420px] rounded-[26px] bg-white p-6 shadow-xl border border-slate-200">
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-blue-600" />
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+              <Sparkles className="h-7 w-7 text-blue-600" />
             </div>
 
             <div>
-              <h1 className="text-2xl font-black text-slate-800">Rembg USP</h1>
+              <h1 className="text-xl font-black text-slate-800">Rembg USP</h1>
               <p className="text-sm font-semibold text-slate-500">Accesso operatore</p>
             </div>
           </div>
 
-          <div className="mt-8 space-y-4">
+          <div className="mt-6 space-y-3">
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-lg outline-none focus:border-blue-500"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-blue-500"
             />
 
             <input
@@ -453,7 +453,7 @@ function App() {
               placeholder="Password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-lg outline-none focus:border-blue-500"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-blue-500"
             />
 
             {authError && (
@@ -466,7 +466,7 @@ function App() {
               type="button"
               onClick={handleLogin}
               disabled={authLoading}
-              className="w-full rounded-2xl bg-blue-600 px-5 py-4 text-lg font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50"
+              className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-base font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50"
             >
               {authLoading ? 'Attendi...' : 'Accedi'}
             </button>
@@ -475,7 +475,7 @@ function App() {
               type="button"
               onClick={handleSignup}
               disabled={authLoading}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-lg font-black text-slate-700 disabled:opacity-50"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-base font-black text-slate-700 disabled:opacity-50"
             >
               Crea account
             </button>
@@ -486,68 +486,68 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F6FB] px-4 py-8">
-      <div className="mx-auto w-full max-w-[500px] pb-20">
-        <header className="rounded-[30px] bg-white border border-slate-200 shadow-sm p-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-blue-600" />
+    <div className="min-h-screen bg-[#F3F6FB] px-4 py-4">
+      <div className="mx-auto w-full max-w-[430px] pb-14">
+        <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+              <Sparkles className="h-7 w-7 text-blue-600" />
             </div>
 
-            <h1 className="text-2xl font-black text-slate-800">Rembg USP</h1>
+            <h1 className="text-xl font-black text-slate-800">Rembg USP</h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-700">Utente</span>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500"
+              className="h-11 w-11 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500"
             >
-              <LogOut className="h-6 w-6" />
+              <LogOut className="h-5 w-5" />
             </button>
           </div>
         </header>
 
-        <div className="mt-8 rounded-[30px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
+        <div className="mt-6 rounded-[26px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('new')}
-            className={`rounded-[24px] py-5 flex items-center justify-center gap-3 text-lg font-black tracking-wide transition ${
+            className={`rounded-[20px] py-4 flex items-center justify-center gap-2 text-sm font-black tracking-wide transition ${
               activeTab === 'new'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400'
             }`}
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-5 w-5" />
             NUOVO PRODOTTO
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('status')}
-            className={`rounded-[24px] py-5 flex items-center justify-center gap-3 text-lg font-black tracking-wide transition ${
+            className={`rounded-[20px] py-4 flex items-center justify-center gap-2 text-sm font-black tracking-wide transition ${
               activeTab === 'status'
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400'
             }`}
           >
-            <Clock3 className="h-6 w-6" />
+            <Clock3 className="h-5 w-5" />
             STATO LAVORI
           </button>
         </div>
 
         {activeTab === 'new' && (
           <>
-            <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
-              <h2 className="text-lg font-black tracking-wide text-slate-800">
+            <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
+              <h2 className="text-base font-black tracking-wide text-slate-800">
                 CODICE ARTICOLO
               </h2>
 
-              <div className="mt-6 flex gap-3">
-                <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 flex items-center gap-4">
-                  <FileText className="h-7 w-7 text-slate-400" />
+              <div className="mt-4 flex gap-3">
+                <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-slate-400" />
 
                   <input
                     value={productCode}
@@ -557,51 +557,51 @@ function App() {
                       setConversionError('');
                     }}
                     placeholder="Es: 789403329"
-                    className="w-full bg-transparent text-xl font-bold text-slate-700 placeholder:text-slate-400 outline-none"
+                    className="w-full bg-transparent text-base font-bold text-slate-700 placeholder:text-slate-400 outline-none"
                   />
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowScanner(true)}
-                  className="h-[74px] w-[74px] rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 flex items-center justify-center"
+                  className="h-[58px] w-[58px] rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 flex items-center justify-center"
                 >
-                  <ScanLine className="h-8 w-8" />
+                  <ScanLine className="h-7 w-7" />
                 </button>
               </div>
 
               {isConverting && (
-                <div className="mt-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 flex items-center gap-2">
+                <div className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Ricerca codice pubblico...
                 </div>
               )}
 
               {publicCode && (
-                <div className="mt-4 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
-                  <p className="text-xs font-black text-emerald-700 uppercase tracking-wide">
+                <div className="mt-3 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+                  <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">
                     Codice pubblico
                   </p>
-                  <p className="mt-1 text-xl font-black text-emerald-800">
+                  <p className="mt-1 text-lg font-black text-emerald-800">
                     {publicCode}
                   </p>
                 </div>
               )}
 
               {conversionError && (
-                <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
+                <div className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
                   {conversionError}
                 </div>
               )}
             </section>
 
-            <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+            <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black tracking-wide text-slate-800">
+                <h2 className="text-base font-black tracking-wide text-slate-800">
                   FOTO
                 </h2>
 
-                <span className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600">
+                <span className="rounded-2xl bg-slate-100 px-3 py-1.5 text-sm font-black text-slate-600">
                   {selectedImages.length} di {MAX_IMAGES}
                 </span>
               </div>
@@ -630,38 +630,38 @@ function App() {
                 }}
               />
 
-              <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="mt-5 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={selectedImages.length >= MAX_IMAGES}
-                  className="rounded-[24px] border-2 border-dashed border-blue-300 bg-blue-50/50 p-8 flex flex-col items-center justify-center gap-4 disabled:opacity-40"
+                  className="rounded-[22px] border-2 border-dashed border-blue-300 bg-blue-50/50 p-5 flex flex-col items-center justify-center gap-3 disabled:opacity-40"
                 >
-                  <div className="h-16 w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-blue-600" />
+                  <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                    <Camera className="h-6 w-6 text-blue-600" />
                   </div>
-                  <span className="text-lg font-black text-blue-600">Scatta Foto</span>
+                  <span className="text-sm font-black text-blue-600">Scatta Foto</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => galleryInputRef.current?.click()}
                   disabled={selectedImages.length >= MAX_IMAGES}
-                  className="rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 flex flex-col items-center justify-center gap-4 disabled:opacity-40"
+                  className="rounded-[22px] border-2 border-dashed border-slate-200 bg-slate-50 p-5 flex flex-col items-center justify-center gap-3 disabled:opacity-40"
                 >
-                  <div className="h-16 w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-slate-500" />
+                  <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                    <Upload className="h-6 w-6 text-slate-500" />
                   </div>
-                  <span className="text-lg font-black text-slate-600">
+                  <span className="text-sm font-black text-slate-600">
                     Carica da Galleria
                   </span>
                 </button>
               </div>
 
               {selectedImages.length === 0 ? (
-                <div className="mt-6 rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 p-10 flex flex-col items-center justify-center text-center">
-                  <ImageIcon className="h-12 w-12 text-slate-300" />
-                  <p className="mt-4 text-lg font-black text-slate-400">
+                <div className="mt-5 rounded-[22px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 flex flex-col items-center justify-center text-center">
+                  <ImageIcon className="h-10 w-10 text-slate-300" />
+                  <p className="mt-3 text-sm font-black text-slate-400">
                     NESSUNA FOTO INSERITA
                   </p>
                   <p className="mt-1 text-sm font-semibold text-slate-400">
@@ -669,7 +669,7 @@ function App() {
                   </p>
                 </div>
               ) : (
-                <div className="mt-6 space-y-3">
+                <div className="mt-5 space-y-3">
                   {selectedImages.map((image, index) => (
                     <div
                       key={image.id}
@@ -678,10 +678,10 @@ function App() {
                       <img
                         src={image.previewUrl}
                         alt={`Foto ${index + 1}`}
-                        className="h-20 w-20 rounded-xl object-cover bg-white"
+                        className="h-16 w-16 rounded-xl object-cover bg-white"
                       />
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-black text-slate-700">
                           Foto {index + 1}
                         </p>
@@ -693,21 +693,21 @@ function App() {
                       <button
                         type="button"
                         onClick={() => toggleApproved(image.id)}
-                        className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+                        className={`h-9 w-9 rounded-xl flex items-center justify-center ${
                           image.approved
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-slate-200 text-slate-500'
                         }`}
                       >
-                        <Check className="h-5 w-5" />
+                        <Check className="h-4 w-4" />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => removeImage(image.id)}
-                        className="h-10 w-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center"
+                        className="h-9 w-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center"
                       >
-                        <Trash2 className="h-5 w-5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   ))}
@@ -715,24 +715,24 @@ function App() {
               )}
             </section>
 
-            <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+            <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black tracking-wide text-slate-800">
+                <h2 className="text-base font-black tracking-wide text-slate-800">
                   MARGINE
                 </h2>
 
-                <span className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-2 text-lg font-black text-blue-600">
+                <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-base font-black text-blue-600">
                   {margin}%
                 </span>
               </div>
 
-              <div className="mt-6 grid grid-cols-6 gap-2">
+              <div className="mt-5 grid grid-cols-6 gap-2">
                 {[10, 15, 20, 30, 40, 50].map((value) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setMargin(value)}
-                    className={`rounded-2xl border px-3 py-4 text-sm font-black ${
+                    className={`rounded-xl border px-2 py-3 text-sm font-black ${
                       margin === value
                         ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
                         : 'bg-white text-slate-600 border-slate-700'
@@ -743,43 +743,43 @@ function App() {
                 ))}
               </div>
 
-              <div className="my-7 h-px bg-slate-100" />
+              <div className="my-5 h-px bg-slate-100" />
 
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black tracking-wide text-slate-800">
+                <h2 className="text-base font-black tracking-wide text-slate-800">
                   FORMATO
                 </h2>
 
-                <span className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-2 text-sm font-black text-blue-600 uppercase">
+                <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-xs font-black text-blue-600 uppercase">
                   {saveFormat}
                 </span>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="mt-5 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setSaveFormat('png')}
-                  className={`rounded-2xl border px-4 py-5 text-center ${
+                  className={`rounded-2xl border px-4 py-4 text-center ${
                     saveFormat === 'png'
                       ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
                       : 'bg-white text-slate-600 border-slate-700'
                   }`}
                 >
-                  <p className="text-xl font-black">PNG</p>
-                  <p className="mt-1 text-sm opacity-70">sfondo trasparente</p>
+                  <p className="text-base font-black">PNG</p>
+                  <p className="mt-1 text-xs opacity-70">sfondo trasparente</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSaveFormat('jpg')}
-                  className={`rounded-2xl border px-4 py-5 text-center ${
+                  className={`rounded-2xl border px-4 py-4 text-center ${
                     saveFormat === 'jpg'
                       ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
                       : 'bg-white text-slate-600 border-slate-700'
                   }`}
                 >
-                  <p className="text-xl font-black">JPEG</p>
-                  <p className="mt-1 text-sm opacity-70">sfondo bianco</p>
+                  <p className="text-base font-black">JPEG</p>
+                  <p className="mt-1 text-xs opacity-70">sfondo bianco</p>
                 </button>
               </div>
             </section>
@@ -788,18 +788,18 @@ function App() {
               type="button"
               onClick={handleProcess}
               disabled={!canProcess}
-              className="mt-8 w-full rounded-[26px] bg-blue-600 px-6 py-6 text-xl font-black text-white shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 disabled:bg-blue-200 disabled:text-blue-400 disabled:shadow-none"
+              className="mt-6 w-full rounded-[22px] bg-blue-600 px-5 py-4 text-base font-black text-white shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 disabled:bg-blue-200 disabled:text-blue-400 disabled:shadow-none"
             >
               {uploading ? (
                 <>
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   Invio in corso...
                 </>
               ) : (
                 <>
-                  <Upload className="h-6 w-6" />
+                  <Upload className="h-5 w-5" />
                   Conferma e Processa
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-5 w-5" />
                 </>
               )}
             </button>
@@ -807,25 +807,25 @@ function App() {
         )}
 
         {activeTab === 'status' && (
-          <section className="mt-8 rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+          <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black tracking-wide text-slate-800">
+              <h2 className="text-base font-black tracking-wide text-slate-800">
                 STATO LAVORI
               </h2>
 
               <button
                 type="button"
                 onClick={loadRecentJobs}
-                className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600"
+                className="rounded-2xl bg-slate-100 px-3 py-1.5 text-sm font-black text-slate-600"
               >
                 Aggiorna
               </button>
             </div>
 
             {jobs.length === 0 ? (
-              <div className="mt-6 rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 p-10 flex flex-col items-center justify-center text-center">
-                <Clock3 className="h-12 w-12 text-slate-300" />
-                <p className="mt-4 text-lg font-black text-slate-400">
+              <div className="mt-5 rounded-[22px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 flex flex-col items-center justify-center text-center">
+                <Clock3 className="h-10 w-10 text-slate-300" />
+                <p className="mt-3 text-sm font-black text-slate-400">
                   NESSUN LAVORO
                 </p>
                 <p className="mt-1 text-sm font-semibold text-slate-400">
@@ -833,7 +833,7 @@ function App() {
                 </p>
               </div>
             ) : (
-              <div className="mt-6 space-y-4">
+              <div className="mt-5 space-y-3">
                 {jobs.flatMap((job) =>
                   (job.job_images || []).map((image) => {
                     const countdown = getCountdown(image.preview_expires_at);
@@ -842,14 +842,14 @@ function App() {
                     return (
                       <div
                         key={image.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
                         <div className="flex items-start gap-3">
                           {previewUrl ? (
                             <button
                               type="button"
                               onClick={() => setActivePreviewUrl(previewUrl)}
-                              className="h-20 w-20 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                              className="h-16 w-16 overflow-hidden rounded-xl border border-slate-200 bg-white"
                             >
                               <img
                                 src={previewUrl}
@@ -858,30 +858,30 @@ function App() {
                               />
                             </button>
                           ) : (
-                            <div className="h-20 w-20 rounded-xl border border-slate-200 bg-white flex items-center justify-center">
+                            <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center">
                               {image.status === 'processing' ? (
-                                <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                               ) : (
-                                <ImageIcon className="h-7 w-7 text-slate-300" />
+                                <ImageIcon className="h-6 w-6 text-slate-300" />
                               )}
                             </div>
                           )}
 
                           <div className="min-w-0 flex-1">
-                            <p className="font-mono text-sm font-black text-slate-800 truncate">
+                            <p className="font-mono text-xs font-black text-slate-800 truncate">
                               {image.file_name ||
                                 `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'png'}`}
                             </p>
 
-                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                            <p className="mt-1 text-[11px] font-semibold text-slate-500">
                               Originale: {job.product_code}
                             </p>
 
-                            <p className="text-xs font-semibold text-slate-500">
+                            <p className="text-[11px] font-semibold text-slate-500">
                               Pubblico: {job.final_code || '-'}
                             </p>
 
-                            <p className="text-xs font-semibold text-slate-500">
+                            <p className="text-[11px] font-semibold text-slate-500">
                               Margine: {job.margin_percentage ?? 15}% · Formato:{' '}
                               {(job.output_format || 'png').toUpperCase()}
                             </p>
@@ -900,7 +900,7 @@ function App() {
                           </div>
 
                           <span
-                            className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${
+                            className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${
                               image.status === 'done'
                                 ? 'bg-emerald-100 text-emerald-700'
                                 : image.status === 'processing'
@@ -935,13 +935,13 @@ function App() {
 
       {activePreviewUrl && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative w-full max-w-3xl rounded-[28px] bg-white p-4 shadow-2xl">
+          <div className="relative w-full max-w-3xl rounded-[24px] bg-white p-4 shadow-2xl">
             <button
               type="button"
               onClick={() => setActivePreviewUrl(null)}
-              className="absolute right-4 top-4 z-10 h-11 w-11 rounded-full bg-white shadow flex items-center justify-center text-slate-600"
+              className="absolute right-4 top-4 z-10 h-10 w-10 rounded-full bg-white shadow flex items-center justify-center text-slate-600"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
 
             <img
