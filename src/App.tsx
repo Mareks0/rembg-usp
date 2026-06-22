@@ -77,7 +77,7 @@ export default function App() {
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [margin, setMargin] = useState(15);
-  const [saveFormat, setSaveFormat] = useState<SaveFormat>('png');
+  const [saveFormat, setSaveFormat] = useState<SaveFormat>('jpg');
 
   const [showScanner, setShowScanner] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -306,7 +306,7 @@ export default function App() {
     setConversionError('');
     setSelectedImages([]);
     setMargin(15);
-    setSaveFormat('png');
+    setSaveFormat('jpg');
   };
 
   const handleProcess = async () => {
@@ -444,22 +444,18 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-5">
         <div className="w-full max-w-[390px] rounded-[26px] bg-white p-6 shadow-xl border border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-[#1E60F2]" />
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+              <Sparkles className="h-7 w-7 text-[#1E60F2]" />
             </div>
 
-            <div className="leading-tight">
-              <h1 className="text-[18px] font-black text-slate-800 leading-[1.05]">
-                Rembg
-                <br />
-                Marek
+            <div>
+              <h1 className="text-[24px] font-black text-slate-800 leading-none">
+                Rembg USP
               </h1>
 
-              <p className="mt-1 text-[11px] font-black tracking-[0.18em] text-slate-400 uppercase leading-[1.35]">
-                Supabase
-                <br />
-                Worker
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                Accesso operatore
               </p>
             </div>
           </div>
@@ -513,31 +509,31 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F3F6FB] px-4 py-4">
       <div className="mx-auto w-full max-w-[390px] pb-14">
-      <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm px-4 py-4 flex items-center justify-between">
-  <div className="flex items-center gap-4 min-w-0">
-    <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-      <Sparkles className="h-7 w-7 text-[#1E60F2]" />
-    </div>
+        <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+              <Sparkles className="h-7 w-7 text-[#1E60F2]" />
+            </div>
 
-    <h1 className="text-[24px] font-black text-slate-800 leading-none">
-      Rembg USP
-    </h1>
-  </div>
+            <h1 className="text-[24px] font-black text-slate-800 leading-none whitespace-nowrap">
+              Rembg USP
+            </h1>
+          </div>
 
-  <div className="flex items-center gap-3 shrink-0">
-    <span className="text-[15px] font-black text-slate-700">
-      Utente
-    </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-[15px] font-black text-slate-700">
+              Utente
+            </span>
 
-    <button
-      type="button"
-      onClick={handleLogout}
-      className="h-12 w-12 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 shrink-0"
-    >
-      <LogOut className="h-5 w-5" />
-    </button>
-  </div>
-</header>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="h-12 w-12 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 shrink-0"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
+        </header>
 
         <div className="mt-5 rounded-[26px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
           <button
@@ -782,24 +778,11 @@ export default function App() {
                 </h2>
 
                 <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-xs font-black text-[#1E60F2] uppercase">
-                  {saveFormat}
+                  {saveFormat === 'jpg' ? 'jpeg' : saveFormat}
                 </span>
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSaveFormat('png')}
-                  className={`rounded-2xl border px-4 py-4 text-center ${
-                    saveFormat === 'png'
-                      ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-lg shadow-blue-600/20'
-                      : 'bg-white text-slate-600 border-slate-200'
-                  }`}
-                >
-                  <p className="text-base font-black">PNG</p>
-                  <p className="mt-1 text-xs opacity-70">sfondo trasparente</p>
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setSaveFormat('jpg')}
@@ -811,6 +794,19 @@ export default function App() {
                 >
                   <p className="text-base font-black">JPEG</p>
                   <p className="mt-1 text-xs opacity-70">sfondo bianco</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSaveFormat('png')}
+                  className={`rounded-2xl border px-4 py-4 text-center ${
+                    saveFormat === 'png'
+                      ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-lg shadow-blue-600/20'
+                      : 'bg-white text-slate-600 border-slate-200'
+                  }`}
+                >
+                  <p className="text-base font-black">PNG</p>
+                  <p className="mt-1 text-xs opacity-70">sfondo trasparente</p>
                 </button>
               </div>
             </section>
@@ -901,7 +897,7 @@ export default function App() {
                           <div className="min-w-0 flex-1">
                             <p className="font-mono text-xs font-black text-slate-800 truncate">
                               {image.file_name ||
-                                `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'png'}`}
+                                `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'jpg'}`}
                             </p>
 
                             <p className="mt-1 text-[11px] font-semibold text-slate-500">
@@ -914,7 +910,7 @@ export default function App() {
 
                             <p className="text-[11px] font-semibold text-slate-500">
                               Margine: {job.margin_percentage ?? 15}% · Formato:{' '}
-                              {(job.output_format || 'png').toUpperCase()}
+                              {(job.output_format || 'jpg').toUpperCase()}
                             </p>
 
                             {image.error && (
