@@ -1,140 +1,138 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Html5Qrcode,
-  Html5QrcodeCameraScanConfig,
-  Html5QrcodeSupportedFormats,
-} from 'html5-qrcode';
+import { useEffect, useRef, useState } from 'react';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { Camera, X } from 'lucide-react';
 
-interface BarcodeScannerProps {
+type BarcodeScannerProps = {
   onScan: (code: string) => void;
   onClose: () => void;
-}
+};
 
 export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
-  const containerId = useMemo(
-    () => `barcode-scanner-reader-${Math.random().toString(36).slice(2)}`,
-    []
-  );
-
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const closingRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [error, setError] = useState('');
-
-  const stopScanner = async () => {
-    if (closingRef.current) return;
-    closingRef.current = true;
-
-    try {
-      if (scannerRef.current?.isScanning) {
-        await scannerRef.current.stop();
-      }
-      await scannerRef.current?.clear();
-    } catch (e) {
-      console.warn('Scanner cleanup:', e);
-    }
-  };
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    closingRef.current = false;
+    let controls: any = null;
+    let cancelled = false;
 
-    const scanner = new Html5Qrcode(containerId, {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_93,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.ITF,
-      ],
-      verbose: false,
-    });
+    const startScanner = async () => {
+      try {
+        setError('');
+        setStarted(false);
 
-    scannerRef.current = scanner;
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error('Fotocamera non supportata da questo browser.');
+        }
 
-    const scanConfig: Html5QrcodeCameraScanConfig = {
-      fps: 15,
-      aspectRatio: 1.3333333,
-      disableFlip: false,
-      qrbox: (viewfinderWidth, viewfinderHeight) => ({
-        width: Math.floor(viewfinderWidth * 0.88),
-        height: Math.floor(viewfinderHeight * 0.38),
-      }),
+        const reader = new BrowserMultiFormatReader();
+        readerRef.current = reader;
+
+        const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+
+        if (!devices || devices.length === 0) {
+          throw new Error('Nessuna fotocamera trovata.');
+        }
+
+        const backCamera =
+          devices.find((device) =>
+            /back|rear|environment|posteriore/i.test(device.label)
+          ) || devices[devices.length - 1];
+
+        if (cancelled || !videoRef.current) return;
+
+        controls = await reader.decodeFromVideoDevice(
+          backCamera.deviceId,
+          videoRef.current,
+          (result) => {
+            if (result) {
+              const text = result.getText();
+
+              if (text) {
+                onScan(text);
+              }
+            }
+          }
+        );
+
+        setStarted(true);
+      } catch (err: any) {
+        console.error(err);
+        setError(
+          err?.message ||
+            'Impossibile avviare la fotocamera. Controlla i permessi camera e usa HTTPS.'
+        );
+      }
     };
 
-    scanner
-      .start(
-        { facingMode: { ideal: 'environment' } },
-        scanConfig,
-        async (decodedText) => {
-          await stopScanner();
-          onScan(decodedText.trim());
-          onClose();
-        },
-        () => {}
-      )
-      .catch((e) => {
-        console.error(e);
-        setError('Impossibile avviare la fotocamera. Controlla i permessi camera e usa HTTPS.');
-      });
+    startScanner();
 
     return () => {
-      stopScanner();
-    };
-  }, [containerId, onClose, onScan]);
+      cancelled = true;
 
-  const handleClose = async () => {
-    await stopScanner();
-    onClose();
-  };
+      try {
+        controls?.stop();
+      } catch {}
+
+      try {
+        readerRef.current?.reset();
+      } catch {}
+    };
+  }, [onScan]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-[520px] overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-[520px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
             <Camera className="h-5 w-5 text-[#1E60F2]" />
+
             <div>
-              <h2 className="font-bold text-slate-800">Scanner Barcode</h2>
-              <p className="text-xs text-slate-500">Inquadra il codice prodotto</p>
+              <h2 className="text-lg font-black text-slate-800">
+                Scanner Barcode
+              </h2>
+              <p className="text-sm font-semibold text-slate-500">
+                Inquadra il codice prodotto
+              </p>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={handleClose}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100"
+            onClick={onClose}
+            className="h-11 w-11 rounded-2xl bg-slate-50 text-slate-500 flex items-center justify-center"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
         <div className="bg-[#020617] p-4">
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-black">
-            <div id={containerId} className="absolute inset-0 h-full w-full" />
+          <div className="relative overflow-hidden rounded-2xl bg-black aspect-[4/3] flex items-center justify-center">
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              playsInline
+            />
 
-            {!error && (
-              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                <div className="relative h-[38%] w-[88%] rounded-2xl border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]">
-                  <div className="absolute left-4 right-4 top-1/2 h-0.5 -translate-y-1/2 bg-[#1E60F2] shadow-[0_0_12px_#1E60F2]" />
-                </div>
+            {!started && !error && (
+              <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold">
+                Avvio fotocamera...
               </div>
             )}
 
             {error && (
-              <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-white">
+              <div className="absolute inset-0 flex items-center justify-center px-8 text-center text-white text-sm font-bold leading-6">
                 {error}
               </div>
             )}
           </div>
         </div>
 
-        <div className="bg-white px-5 py-5 text-center">
-          <p className="text-sm leading-relaxed text-slate-500">
-            Avvicina il codice a barre, tienilo ben illuminato e orizzontale.
-          </p>
+        <div className="px-5 py-4 text-center text-sm font-semibold text-slate-500">
+          Avvicina il codice a barre, tienilo ben illuminato e orizzontale.
         </div>
       </div>
     </div>
