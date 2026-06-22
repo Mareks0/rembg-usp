@@ -408,12 +408,14 @@ export default function App() {
 
   const getPreviewUrl = (image: JobImage) => {
     const countdown = getCountdown(image.preview_expires_at);
-
+  
     if (image.status !== 'done' || !image.result_path || !countdown) {
       return '';
     }
-
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${image.result_path}`;
+  
+    const cacheVersion = image.processed_at || image.id;
+  
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${image.result_path}?v=${encodeURIComponent(cacheVersion)}`;
   };
 
   if (!hasConfig) {
@@ -872,11 +874,11 @@ export default function App() {
                         className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
                         <div className="flex items-start gap-3">
-                          {previewUrl ? (
+                           {previewUrl ? (
                             <button
                               type="button"
                               onClick={() => setActivePreviewUrl(previewUrl)}
-                              className="h-16 w-16 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                              className="h-[93.5px] w-[93.5px] overflow-hidden rounded-xl border border-slate-200 bg-white"
                             >
                               <img
                                 src={previewUrl}
