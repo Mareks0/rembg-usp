@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   Camera,
-  Check,
   ChevronRight,
   Clock3,
   FileText,
@@ -24,7 +23,6 @@ type SelectedImage = {
   id: string;
   file: File;
   previewUrl: string;
-  approved: boolean;
 };
 
 type SaveFormat = 'png' | 'jpg';
@@ -89,16 +87,10 @@ export default function App() {
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const cleanedProductCode = useMemo(() => productCode.trim(), [productCode]);
-
-  const approvedImages = useMemo(
-    () => selectedImages.filter((image) => image.approved),
-    [selectedImages]
-  );
-
   const canProcess =
     cleanedProductCode &&
     publicCode &&
-    approvedImages.length > 0 &&
+    selectedImages.length > 0 &&
     !uploading &&
     !isConverting;
 
@@ -272,7 +264,6 @@ export default function App() {
       id: crypto.randomUUID(),
       file,
       previewUrl: URL.createObjectURL(file),
-      approved: true,
     }));
 
     setSelectedImages((current) => [...current, ...newImages]);
@@ -288,14 +279,6 @@ export default function App() {
 
       return current.filter((image) => image.id !== id);
     });
-  };
-
-  const toggleApproved = (id: string) => {
-    setSelectedImages((current) =>
-      current.map((image) =>
-        image.id === id ? { ...image, approved: !image.approved } : image
-      )
-    );
   };
 
   const resetForm = () => {
@@ -320,7 +303,7 @@ export default function App() {
       return;
     }
 
-    if (approvedImages.length === 0) {
+    if (selectedImages.length === 0) {
       alert('Aggiungi almeno una foto.');
       return;
     }
@@ -346,8 +329,8 @@ export default function App() {
 
       if (jobError) throw jobError;
 
-      for (let i = 0; i < approvedImages.length; i++) {
-        const image = approvedImages[i];
+      for (let i = 0; i < selectedImages.length; i++) {
+        const image = selectedImages[i];
         const imageIndex = i + 1;
         const originalExtension =
           image.file.name.split('.').pop()?.toLowerCase() || 'jpg';
@@ -408,13 +391,13 @@ export default function App() {
 
   const getPreviewUrl = (image: JobImage) => {
     const countdown = getCountdown(image.preview_expires_at);
-  
+
     if (image.status !== 'done' || !image.result_path || !countdown) {
       return '';
     }
-  
+
     const cacheVersion = image.processed_at || image.id;
-  
+
     return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${image.result_path}?v=${encodeURIComponent(cacheVersion)}`;
   };
 
@@ -512,12 +495,12 @@ export default function App() {
     <div className="min-h-screen bg-[#F3F6FB] px-4 py-4">
       <div className="mx-auto w-full max-w-[390px] pb-14">
         <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
               <Sparkles className="h-7 w-7 text-[#1E60F2]" />
             </div>
 
-            <h1 className="text-[18px] font-black text-slate-800 leading-none whitespace-nowrap">
+            <h1 className="text-[20px] font-black text-slate-800 leading-none whitespace-nowrap">
               Rembg USP
             </h1>
           </div>
@@ -687,17 +670,7 @@ export default function App() {
                 </button>
               </div>
 
-              {selectedImages.length === 0 ? (
-                <div className="mt-5 rounded-[22px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 flex flex-col items-center justify-center text-center">
-                  <ImageIcon className="h-10 w-10 text-slate-300" />
-                  <p className="mt-3 text-sm font-black text-slate-400">
-                    NESSUNA FOTO INSERITA
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-400">
-                    Aggiungi fino a 5 foto alla volta.
-                  </p>
-                </div>
-              ) : (
+              {selectedImages.length > 0 && (
                 <div className="mt-5 space-y-3">
                   {selectedImages.map((image, index) => (
                     <div
@@ -707,7 +680,7 @@ export default function App() {
                       <img
                         src={image.previewUrl}
                         alt={`Foto ${index + 1}`}
-                        className="h-16 w-16 rounded-xl object-cover bg-white"
+                        className="h-[93.5px] w-[93.5px] min-w-[93.5px] rounded-[20px] object-cover bg-white border border-slate-200"
                       />
 
                       <div className="flex-1 min-w-0">
@@ -721,22 +694,10 @@ export default function App() {
 
                       <button
                         type="button"
-                        onClick={() => toggleApproved(image.id)}
-                        className={`h-9 w-9 rounded-xl flex items-center justify-center ${
-                          image.approved
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-200 text-slate-500'
-                        }`}
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => removeImage(image.id)}
-                        className="h-9 w-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center"
+                        className="h-12 w-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-5 w-5" />
                       </button>
                     </div>
                   ))}
@@ -874,24 +835,24 @@ export default function App() {
                         className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                       >
                         <div className="flex items-start gap-3">
-                           {previewUrl ? (
+                          {previewUrl ? (
                             <button
                               type="button"
                               onClick={() => setActivePreviewUrl(previewUrl)}
-                              className="h-[93.5px] w-[93.5px] overflow-hidden rounded-xl border border-slate-200 bg-white"
+                              className="h-[93.5px] w-[93.5px] min-w-[93.5px] overflow-hidden rounded-[20px] border border-slate-200 bg-white"
                             >
                               <img
                                 src={previewUrl}
                                 alt={image.file_name || 'preview'}
-                                className="h-full w-full object-contain"
+                                className="h-full w-full object-cover"
                               />
                             </button>
                           ) : (
-                            <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center">
+                            <div className="h-[93.5px] w-[93.5px] min-w-[93.5px] rounded-[20px] border border-slate-200 bg-white flex items-center justify-center">
                               {image.status === 'processing' ? (
-                                <Loader2 className="h-6 w-6 animate-spin text-[#1E60F2]" />
+                                <Loader2 className="h-7 w-7 animate-spin text-[#1E60F2]" />
                               ) : (
-                                <ImageIcon className="h-6 w-6 text-slate-300" />
+                                <ImageIcon className="h-7 w-7 text-slate-300" />
                               )}
                             </div>
                           )}
