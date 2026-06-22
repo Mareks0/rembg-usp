@@ -808,28 +808,10 @@ export default function App() {
           </>
         )}
 
-        
-          <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
-                STATO LAVORI
-              </h2>
-
-              <button
-                type="button"
-                onClick={() => loadRecentJobs(true)}
-                disabled={refreshingJobs}
-                className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600 active:scale-95 disabled:opacity-60 flex items-center gap-2"
-              >
-                {refreshingJobs && (
-                  <Loader2 className="h-4 w-4 animate-spin text-[#1E60F2]" />
-                )}
-                {refreshingJobs ? 'Aggiorno...' : 'Aggiorna'}
-              </button>
-            </div>
-
+        {activeTab === 'status' && (
+          <>
             {jobs.length === 0 ? (
-              <div className="mt-6 rounded-[28px] bg-white px-6 py-14 flex flex-col items-center justify-center text-center">
+              <section className="mt-5 rounded-[34px] bg-white border border-slate-100 shadow-sm px-6 py-16 flex flex-col items-center justify-center text-center min-h-[360px]">
                 <div className="h-16 w-16 rounded-[22px] border border-slate-200 bg-slate-50 flex items-center justify-center">
                   <Clock3 className="h-8 w-8 text-slate-400" />
                 </div>
@@ -838,7 +820,7 @@ export default function App() {
                   NESSUN LAVORO ATTIVO
                 </h3>
 
-                <p className="mt-5 max-w-[280px] text-[15px] font-semibold leading-7 text-slate-400">
+                <p className="mt-5 max-w-[285px] text-[15px] font-semibold leading-7 text-slate-400">
                   Non c&apos;è nessuna lavorazione attiva in questo momento. Crea un
                   codice prodotto e carica le immagini nella scheda &quot;Nuovo Prodotto&quot;.
                 </p>
@@ -850,151 +832,113 @@ export default function App() {
                 >
                   INIZIA ORA
                 </button>
-              </div>
+              </section>
             ) : (
-              <div className="mt-5 space-y-3">
-                {jobs.flatMap((job) =>
-                  (job.job_images || []).map((image) => {
-                    const countdown = getCountdown(image.preview_expires_at);
-                    const previewUrl = getPreviewUrl(image);
-                    const formatLabel = (job.output_format || 'jpg').toUpperCase();
+              <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
+                    STATO LAVORI
+                  </h2>
 
-                    return (
-                      <div
-                        key={image.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                      >
-                        <div className="flex items-start gap-3">
-                        {activeTab === 'status' && (
-  <>
-    {jobs.length === 0 ? (
-      <section className="mt-5 rounded-[34px] bg-white border border-slate-100 shadow-sm px-6 py-16 flex flex-col items-center justify-center text-center min-h-[360px]">
-        <div className="h-16 w-16 rounded-[22px] border border-slate-200 bg-slate-50 flex items-center justify-center">
-          <Clock3 className="h-8 w-8 text-slate-400" />
-        </div>
-
-        <h3 className="mt-8 text-[18px] font-black tracking-[0.18em] text-slate-800 uppercase">
-          NESSUN LAVORO ATTIVO
-        </h3>
-
-        <p className="mt-5 max-w-[285px] text-[15px] font-semibold leading-7 text-slate-400">
-          Non c&apos;è nessuna lavorazione attiva in questo momento. Crea un
-          codice prodotto e carica le immagini nella scheda &quot;Nuovo Prodotto&quot;.
-        </p>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('new')}
-          className="mt-8 rounded-2xl bg-[#1E60F2] px-8 py-4 text-sm font-black tracking-wide text-white shadow-lg shadow-blue-600/20 active:scale-95"
-        >
-          INIZIA ORA
-        </button>
-      </section>
-    ) : (
-      <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
-            STATO LAVORI
-          </h2>
-
-          <button
-            type="button"
-            onClick={() => loadRecentJobs(true)}
-            disabled={refreshingJobs}
-            className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600 active:scale-95 disabled:opacity-60 flex items-center gap-2"
-          >
-            {refreshingJobs && (
-              <Loader2 className="h-4 w-4 animate-spin text-[#1E60F2]" />
-            )}
-            {refreshingJobs ? 'Aggiorno...' : 'Aggiorna'}
-          </button>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          {jobs.flatMap((job) =>
-            (job.job_images || []).map((image) => {
-              const countdown = getCountdown(image.preview_expires_at);
-              const previewUrl = getPreviewUrl(image);
-              const formatLabel = (job.output_format || 'jpg').toUpperCase();
-
-              return (
-                <div
-                  key={image.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                >
-                  <div className="flex items-start gap-3">
-                    {previewUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => setActivePreviewUrl(previewUrl)}
-                        className="h-[93.5px] w-[93.5px] min-w-[93.5px] overflow-hidden rounded-[20px] border border-slate-200 bg-white"
-                      >
-                        <img
-                          src={previewUrl}
-                          alt={image.file_name || 'preview'}
-                          className="h-full w-full object-cover"
-                        />
-                      </button>
-                    ) : (
-                      <div className="h-[93.5px] w-[93.5px] min-w-[93.5px] rounded-[20px] border border-slate-200 bg-white flex items-center justify-center">
-                        {image.status === 'processing' ? (
-                          <Loader2 className="h-7 w-7 animate-spin text-[#1E60F2]" />
-                        ) : (
-                          <ImageIcon className="h-7 w-7 text-slate-300" />
-                        )}
-                      </div>
+                  <button
+                    type="button"
+                    onClick={() => loadRecentJobs(true)}
+                    disabled={refreshingJobs}
+                    className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600 active:scale-95 disabled:opacity-60 flex items-center gap-2"
+                  >
+                    {refreshingJobs && (
+                      <Loader2 className="h-4 w-4 animate-spin text-[#1E60F2]" />
                     )}
-
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-xs font-black text-slate-800 truncate">
-                        {image.file_name ||
-                          `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'jpg'}`}
-                      </p>
-
-                      <p className="mt-1 text-[11px] font-semibold text-slate-500">
-                        Originale: {job.product_code}
-                      </p>
-
-                      <p className="text-[11px] font-semibold text-slate-500">
-                        Margine: {job.margin_percentage ?? 15}% · {formatLabel}
-                      </p>
-
-                      {image.error && (
-                        <p className="mt-2 text-xs font-bold text-rose-600">
-                          {image.error}
-                        </p>
-                      )}
-
-                      {image.status === 'done' && countdown && (
-                        <p className="mt-2 text-xs font-mono font-black text-[#1E60F2]">
-                          Preview {countdown}
-                        </p>
-                      )}
-                    </div>
-
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${
-                        image.status === 'done'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : image.status === 'processing'
-                            ? 'bg-blue-100 text-[#1E60F2]'
-                            : image.status === 'error'
-                              ? 'bg-rose-100 text-rose-700'
-                              : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {image.status || job.status}
-                    </span>
-                  </div>
+                    {refreshingJobs ? 'Aggiorno...' : 'Aggiorna'}
+                  </button>
                 </div>
-              );
-            })
-          )}
-        </div>
-      </section>
-    )}
-  </>
-)}
+
+                <div className="mt-5 space-y-3">
+                  {jobs.flatMap((job) =>
+                    (job.job_images || []).map((image) => {
+                      const countdown = getCountdown(image.preview_expires_at);
+                      const previewUrl = getPreviewUrl(image);
+                      const formatLabel = (job.output_format || 'jpg').toUpperCase();
+
+                      return (
+                        <div
+                          key={image.id}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <div className="flex items-start gap-3">
+                            {previewUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setActivePreviewUrl(previewUrl)}
+                                className="h-[93.5px] w-[93.5px] min-w-[93.5px] overflow-hidden rounded-[20px] border border-slate-200 bg-white"
+                              >
+                                <img
+                                  src={previewUrl}
+                                  alt={image.file_name || 'preview'}
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
+                            ) : (
+                              <div className="h-[93.5px] w-[93.5px] min-w-[93.5px] rounded-[20px] border border-slate-200 bg-white flex items-center justify-center">
+                                {image.status === 'processing' ? (
+                                  <Loader2 className="h-7 w-7 animate-spin text-[#1E60F2]" />
+                                ) : (
+                                  <ImageIcon className="h-7 w-7 text-slate-300" />
+                                )}
+                              </div>
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <p className="font-mono text-xs font-black text-slate-800 truncate">
+                                {image.file_name ||
+                                  `${job.final_code || job.product_code}-${image.image_index}.${job.output_format || 'jpg'}`}
+                              </p>
+
+                              <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                                Originale: {job.product_code}
+                              </p>
+
+                              <p className="text-[11px] font-semibold text-slate-500">
+                                Margine: {job.margin_percentage ?? 15}% · {formatLabel}
+                              </p>
+
+                              {image.error && (
+                                <p className="mt-2 text-xs font-bold text-rose-600">
+                                  {image.error}
+                                </p>
+                              )}
+
+                              {image.status === 'done' && countdown && (
+                                <p className="mt-2 text-xs font-mono font-black text-[#1E60F2]">
+                                  Preview {countdown}
+                                </p>
+                              )}
+                            </div>
+
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${
+                                image.status === 'done'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : image.status === 'processing'
+                                    ? 'bg-blue-100 text-[#1E60F2]'
+                                    : image.status === 'error'
+                                      ? 'bg-rose-100 text-rose-700'
+                                      : 'bg-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {image.status || job.status}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
 
       {showScanner && (
         <BarcodeScanner
