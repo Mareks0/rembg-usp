@@ -513,41 +513,31 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F3F6FB] px-4 py-4">
       <div className="mx-auto w-full max-w-[390px] pb-14">
-        <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="h-11 w-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-              <Sparkles className="h-6 w-6 text-[#1E60F2]" />
-            </div>
+      <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm px-4 py-4 flex items-center justify-between">
+  <div className="flex items-center gap-4 min-w-0">
+    <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+      <Sparkles className="h-7 w-7 text-[#1E60F2]" />
+    </div>
 
-            <div className="leading-tight shrink-0">
-              <h1 className="text-[18px] font-black text-slate-800 leading-[1.05]">
-                Rembg
-                <br />
-                Marek
-              </h1>
+    <h1 className="text-[24px] font-black text-slate-800 leading-none">
+      Rembg USP
+    </h1>
+  </div>
 
-              <p className="mt-1 text-[11px] font-black tracking-[0.18em] text-slate-400 uppercase leading-[1.35]">
-                Supabase
-                <br />
-                Worker
-              </p>
-            </div>
-          </div>
+  <div className="flex items-center gap-3 shrink-0">
+    <span className="text-[15px] font-black text-slate-700">
+      Utente
+    </span>
 
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="hidden min-[390px]:block text-[13px] font-black text-slate-800 truncate max-w-[155px]">
-              {user.email}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="h-11 w-11 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 shrink-0"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="h-12 w-12 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 shrink-0"
+    >
+      <LogOut className="h-5 w-5" />
+    </button>
+  </div>
+</header>
 
         <div className="mt-5 rounded-[26px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
           <button
