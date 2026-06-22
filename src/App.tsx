@@ -515,7 +515,7 @@ export default function App() {
               <Sparkles className="h-7 w-7 text-[#1E60F2]" />
             </div>
 
-            <h1 className="text-[24px] font-black text-slate-800 leading-none whitespace-nowrap">
+            <h1 className="text-[18px] font-black text-slate-800 leading-none whitespace-nowrap">
               Rembg USP
             </h1>
           </div>
