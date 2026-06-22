@@ -57,8 +57,9 @@ type Job = {
 
 const MAX_IMAGES = 5;
 const BUCKET_NAME = 'product-images';
+const MARGINS = [5, 10, 15, 20];
 
-function App() {
+export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
@@ -127,11 +128,11 @@ function App() {
 
     loadRecentJobs();
 
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       loadRecentJobs();
     }, 3000);
 
-    return () => clearInterval(interval);
+    return () => window.clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
@@ -141,11 +142,11 @@ function App() {
       return;
     }
 
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       convertProductCode(cleanedProductCode);
     }, 600);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [cleanedProductCode]);
 
   const handleLogin = async () => {
@@ -252,6 +253,7 @@ function App() {
           error
         )
       `)
+      .neq('status', 'uploading')
       .order('created_at', { ascending: false })
       .limit(25);
 
@@ -326,14 +328,16 @@ function App() {
     setUploading(true);
 
     try {
+      const safeMargin = MARGINS.includes(margin) ? margin : 15;
+
       const { data: job, error: jobError } = await supabase
         .from('jobs')
         .insert({
           product_code: cleanedProductCode,
           final_code: publicCode,
-          margin_percentage: margin,
+          margin_percentage: safeMargin,
           output_format: saveFormat,
-          status: 'pending',
+          status: 'uploading',
           created_by: user?.id || null,
           error: null,
         })
@@ -345,7 +349,9 @@ function App() {
       for (let i = 0; i < approvedImages.length; i++) {
         const image = approvedImages[i];
         const imageIndex = i + 1;
-        const originalExtension = image.file.name.split('.').pop() || 'jpg';
+        const originalExtension =
+          image.file.name.split('.').pop()?.toLowerCase() || 'jpg';
+
         const originalPath = `originals/${job.id}/${cleanedProductCode}-${imageIndex}.${originalExtension}`;
 
         const { error: uploadError } = await supabase.storage
@@ -367,9 +373,19 @@ function App() {
         if (imageError) throw imageError;
       }
 
+      const { error: readyError } = await supabase
+        .from('jobs')
+        .update({
+          status: 'pending',
+          error: null,
+        })
+        .eq('id', job.id);
+
+      if (readyError) throw readyError;
+
       resetForm();
       setActiveTab('status');
-      loadRecentJobs();
+      await loadRecentJobs();
     } catch (error: any) {
       alert(error.message || 'Errore durante il processo.');
     } finally {
@@ -419,7 +435,7 @@ function App() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+        <Loader2 className="h-7 w-7 animate-spin text-[#1E60F2]" />
       </div>
     );
   }
@@ -427,15 +443,24 @@ function App() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#F3F6FB] flex items-center justify-center p-5">
-        <div className="w-full max-w-[420px] rounded-[26px] bg-white p-6 shadow-xl border border-slate-200">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-              <Sparkles className="h-7 w-7 text-blue-600" />
+        <div className="w-full max-w-[390px] rounded-[26px] bg-white p-6 shadow-xl border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-[#1E60F2]" />
             </div>
 
-            <div>
-              <h1 className="text-xl font-black text-slate-800">Rembg USP</h1>
-              <p className="text-sm font-semibold text-slate-500">Accesso operatore</p>
+            <div className="leading-tight">
+              <h1 className="text-[18px] font-black text-slate-800 leading-[1.05]">
+                Rembg
+                <br />
+                Marek
+              </h1>
+
+              <p className="mt-1 text-[11px] font-black tracking-[0.18em] text-slate-400 uppercase leading-[1.35]">
+                Supabase
+                <br />
+                Worker
+              </p>
             </div>
           </div>
 
@@ -445,7 +470,7 @@ function App() {
               placeholder="Email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-blue-500"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-[#1E60F2]"
             />
 
             <input
@@ -453,7 +478,7 @@ function App() {
               placeholder="Password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-blue-500"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-[#1E60F2]"
             />
 
             {authError && (
@@ -466,7 +491,7 @@ function App() {
               type="button"
               onClick={handleLogin}
               disabled={authLoading}
-              className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-base font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50"
+              className="w-full rounded-2xl bg-[#1E60F2] px-5 py-3 text-base font-black text-white shadow-lg shadow-blue-600/20 disabled:opacity-50"
             >
               {authLoading ? 'Attendi...' : 'Accedi'}
             </button>
@@ -487,36 +512,50 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#F3F6FB] px-4 py-4">
-      <div className="mx-auto w-full max-w-[430px] pb-14">
-        <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-              <Sparkles className="h-7 w-7 text-blue-600" />
+      <div className="mx-auto w-full max-w-[390px] pb-14">
+        <header className="rounded-[26px] bg-white border border-slate-200 shadow-sm px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-11 w-11 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+              <Sparkles className="h-6 w-6 text-[#1E60F2]" />
             </div>
 
-            <h1 className="text-xl font-black text-slate-800">Rembg USP</h1>
+            <div className="leading-tight shrink-0">
+              <h1 className="text-[18px] font-black text-slate-800 leading-[1.05]">
+                Rembg
+                <br />
+                Marek
+              </h1>
+
+              <p className="mt-1 text-[11px] font-black tracking-[0.18em] text-slate-400 uppercase leading-[1.35]">
+                Supabase
+                <br />
+                Worker
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-700">Utente</span>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="hidden min-[390px]:block text-[13px] font-black text-slate-800 truncate max-w-[155px]">
+              {user.email}
+            </span>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="h-11 w-11 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500"
+              className="h-11 w-11 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 shrink-0"
             >
               <LogOut className="h-5 w-5" />
             </button>
           </div>
         </header>
 
-        <div className="mt-6 rounded-[26px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
+        <div className="mt-5 rounded-[26px] bg-white border border-slate-100 shadow-sm p-2 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('new')}
-            className={`rounded-[20px] py-4 flex items-center justify-center gap-2 text-sm font-black tracking-wide transition ${
+            className={`rounded-[20px] py-4 flex items-center justify-center gap-2 text-[12px] font-black tracking-wide transition ${
               activeTab === 'new'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                ? 'bg-[#1E60F2] text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400'
             }`}
           >
@@ -527,9 +566,9 @@ function App() {
           <button
             type="button"
             onClick={() => setActiveTab('status')}
-            className={`rounded-[20px] py-4 flex items-center justify-center gap-2 text-sm font-black tracking-wide transition ${
+            className={`rounded-[20px] py-4 flex items-center justify-center gap-2 text-[12px] font-black tracking-wide transition ${
               activeTab === 'status'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                ? 'bg-[#1E60F2] text-white shadow-lg shadow-blue-600/20'
                 : 'text-slate-400'
             }`}
           >
@@ -541,8 +580,8 @@ function App() {
         {activeTab === 'new' && (
           <>
             <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
-              <h2 className="text-base font-black tracking-wide text-slate-800">
-                CODICE ARTICOLO
+              <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
+                CODICE PRODOTTO
               </h2>
 
               <div className="mt-4 flex gap-3">
@@ -556,7 +595,7 @@ function App() {
                       setPublicCode('');
                       setConversionError('');
                     }}
-                    placeholder="Es: 789403329"
+                    placeholder="Codice Articolo"
                     className="w-full bg-transparent text-base font-bold text-slate-700 placeholder:text-slate-400 outline-none"
                   />
                 </div>
@@ -564,14 +603,14 @@ function App() {
                 <button
                   type="button"
                   onClick={() => setShowScanner(true)}
-                  className="h-[58px] w-[58px] rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 flex items-center justify-center"
+                  className="h-[58px] w-[58px] rounded-2xl bg-[#1E60F2] text-white shadow-lg shadow-blue-600/20 flex items-center justify-center"
                 >
                   <ScanLine className="h-7 w-7" />
                 </button>
               </div>
 
               {isConverting && (
-                <div className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 flex items-center gap-2">
+                <div className="mt-3 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-[#1E60F2] flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Ricerca codice pubblico...
                 </div>
@@ -597,8 +636,8 @@ function App() {
 
             <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-black tracking-wide text-slate-800">
-                  FOTO
+                <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
+                  FOTO PRODOTTO ORIGINALI
                 </h2>
 
                 <span className="rounded-2xl bg-slate-100 px-3 py-1.5 text-sm font-black text-slate-600">
@@ -638,9 +677,11 @@ function App() {
                   className="rounded-[22px] border-2 border-dashed border-blue-300 bg-blue-50/50 p-5 flex flex-col items-center justify-center gap-3 disabled:opacity-40"
                 >
                   <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-                    <Camera className="h-6 w-6 text-blue-600" />
+                    <Camera className="h-6 w-6 text-[#1E60F2]" />
                   </div>
-                  <span className="text-sm font-black text-blue-600">Scatta Foto</span>
+                  <span className="text-sm font-black text-[#1E60F2]">
+                    Scatta Foto
+                  </span>
                 </button>
 
                 <button
@@ -652,7 +693,7 @@ function App() {
                   <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
                     <Upload className="h-6 w-6 text-slate-500" />
                   </div>
-                  <span className="text-sm font-black text-slate-600">
+                  <span className="text-sm font-black text-slate-600 text-center">
                     Carica da Galleria
                   </span>
                 </button>
@@ -717,25 +758,25 @@ function App() {
 
             <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-black tracking-wide text-slate-800">
+                <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
                   MARGINE
                 </h2>
 
-                <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-base font-black text-blue-600">
+                <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-base font-black text-[#1E60F2]">
                   {margin}%
                 </span>
               </div>
 
-              <div className="mt-5 grid grid-cols-6 gap-2">
-                {[10, 15, 20, 30, 40, 50].map((value) => (
+              <div className="mt-5 grid grid-cols-4 gap-2">
+                {MARGINS.map((value) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => setMargin(value)}
                     className={`rounded-xl border px-2 py-3 text-sm font-black ${
                       margin === value
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                        : 'bg-white text-slate-600 border-slate-700'
+                        ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-lg shadow-blue-600/20'
+                        : 'bg-white text-slate-600 border-slate-200'
                     }`}
                   >
                     {value}%
@@ -746,11 +787,11 @@ function App() {
               <div className="my-5 h-px bg-slate-100" />
 
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-black tracking-wide text-slate-800">
+                <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
                   FORMATO
                 </h2>
 
-                <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-xs font-black text-blue-600 uppercase">
+                <span className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 text-xs font-black text-[#1E60F2] uppercase">
                   {saveFormat}
                 </span>
               </div>
@@ -761,8 +802,8 @@ function App() {
                   onClick={() => setSaveFormat('png')}
                   className={`rounded-2xl border px-4 py-4 text-center ${
                     saveFormat === 'png'
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                      : 'bg-white text-slate-600 border-slate-700'
+                      ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-lg shadow-blue-600/20'
+                      : 'bg-white text-slate-600 border-slate-200'
                   }`}
                 >
                   <p className="text-base font-black">PNG</p>
@@ -774,8 +815,8 @@ function App() {
                   onClick={() => setSaveFormat('jpg')}
                   className={`rounded-2xl border px-4 py-4 text-center ${
                     saveFormat === 'jpg'
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
-                      : 'bg-white text-slate-600 border-slate-700'
+                      ? 'bg-[#1E60F2] text-white border-[#1E60F2] shadow-lg shadow-blue-600/20'
+                      : 'bg-white text-slate-600 border-slate-200'
                   }`}
                 >
                   <p className="text-base font-black">JPEG</p>
@@ -788,7 +829,7 @@ function App() {
               type="button"
               onClick={handleProcess}
               disabled={!canProcess}
-              className="mt-6 w-full rounded-[22px] bg-blue-600 px-5 py-4 text-base font-black text-white shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 disabled:bg-blue-200 disabled:text-blue-400 disabled:shadow-none"
+              className="mt-6 w-full rounded-[22px] bg-[#1E60F2] px-5 py-4 text-base font-black text-white shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 disabled:bg-blue-200 disabled:text-blue-400 disabled:shadow-none"
             >
               {uploading ? (
                 <>
@@ -809,7 +850,7 @@ function App() {
         {activeTab === 'status' && (
           <section className="mt-5 rounded-[26px] bg-white border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-black tracking-wide text-slate-800">
+              <h2 className="text-[13px] font-black tracking-wide text-slate-800 uppercase">
                 STATO LAVORI
               </h2>
 
@@ -860,7 +901,7 @@ function App() {
                           ) : (
                             <div className="h-16 w-16 rounded-xl border border-slate-200 bg-white flex items-center justify-center">
                               {image.status === 'processing' ? (
-                                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                                <Loader2 className="h-6 w-6 animate-spin text-[#1E60F2]" />
                               ) : (
                                 <ImageIcon className="h-6 w-6 text-slate-300" />
                               )}
@@ -893,7 +934,7 @@ function App() {
                             )}
 
                             {image.status === 'done' && countdown && (
-                              <p className="mt-2 text-xs font-mono font-black text-blue-600">
+                              <p className="mt-2 text-xs font-mono font-black text-[#1E60F2]">
                                 Preview {countdown}
                               </p>
                             )}
@@ -904,7 +945,7 @@ function App() {
                               image.status === 'done'
                                 ? 'bg-emerald-100 text-emerald-700'
                                 : image.status === 'processing'
-                                  ? 'bg-blue-100 text-blue-700'
+                                  ? 'bg-blue-100 text-[#1E60F2]'
                                   : image.status === 'error'
                                     ? 'bg-rose-100 text-rose-700'
                                     : 'bg-slate-200 text-slate-600'
@@ -955,5 +996,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
