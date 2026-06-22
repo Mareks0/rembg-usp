@@ -81,12 +81,14 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
 
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [refreshingJobs, setRefreshingJobs] = useState(false);
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
 
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const cleanedProductCode = useMemo(() => productCode.trim(), [productCode]);
+
   const canProcess =
     cleanedProductCode &&
     publicCode &&
@@ -118,10 +120,10 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    loadRecentJobs();
+    loadRecentJobs(false);
 
     const interval = window.setInterval(() => {
-      loadRecentJobs();
+      loadRecentJobs(false);
     }, 3000);
 
     return () => window.clearInterval(interval);
@@ -219,38 +221,48 @@ export default function App() {
     }
   };
 
-  const loadRecentJobs = async () => {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select(`
-        id,
-        product_code,
-        final_code,
-        margin_percentage,
-        output_format,
-        status,
-        created_at,
-        processed_at,
-        error,
-        job_images (
-          id,
-          image_index,
-          status,
-          result_path,
-          nas_path,
-          file_name,
-          processed_at,
-          preview_expires_at,
-          storage_deleted_at,
-          error
-        )
-      `)
-      .neq('status', 'uploading')
-      .order('created_at', { ascending: false })
-      .limit(25);
+  const loadRecentJobs = async (showLoading = true) => {
+    if (showLoading) setRefreshingJobs(true);
 
-    if (!error) {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          id,
+          product_code,
+          final_code,
+          margin_percentage,
+          output_format,
+          status,
+          created_at,
+          processed_at,
+          error,
+          job_images (
+            id,
+            image_index,
+            status,
+            result_path,
+            nas_path,
+            file_name,
+            processed_at,
+            preview_expires_at,
+            storage_deleted_at,
+            error
+          )
+        `)
+        .neq('status', 'uploading')
+        .order('created_at', { ascending: false })
+        .limit(25);
+
+      if (error) throw error;
+
       setJobs((data || []) as Job[]);
+    } catch (error: any) {
+      if (showLoading) {
+        alert(error.message || 'Errore aggiornamento lavori.');
+      }
+    } finally {
+      if (showLoading) setRefreshingJobs(false);
     }
   };
 
@@ -368,7 +380,7 @@ export default function App() {
 
       resetForm();
       setActiveTab('status');
-      await loadRecentJobs();
+      await loadRecentJobs(false);
     } catch (error: any) {
       alert(error.message || 'Errore durante il processo.');
     } finally {
@@ -805,22 +817,39 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={loadRecentJobs}
-                className="rounded-2xl bg-slate-100 px-3 py-1.5 text-sm font-black text-slate-600"
+                onClick={() => loadRecentJobs(true)}
+                disabled={refreshingJobs}
+                className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600 active:scale-95 disabled:opacity-60 flex items-center gap-2"
               >
-                Aggiorna
+                {refreshingJobs && (
+                  <Loader2 className="h-4 w-4 animate-spin text-[#1E60F2]" />
+                )}
+                {refreshingJobs ? 'Aggiorno...' : 'Aggiorna'}
               </button>
             </div>
 
             {jobs.length === 0 ? (
-              <div className="mt-5 rounded-[22px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 flex flex-col items-center justify-center text-center">
-                <Clock3 className="h-10 w-10 text-slate-300" />
-                <p className="mt-3 text-sm font-black text-slate-400">
-                  NESSUN LAVORO
+              <div className="mt-6 rounded-[28px] bg-white px-6 py-14 flex flex-col items-center justify-center text-center">
+                <div className="h-16 w-16 rounded-[22px] border border-slate-200 bg-slate-50 flex items-center justify-center">
+                  <Clock3 className="h-8 w-8 text-slate-400" />
+                </div>
+
+                <h3 className="mt-8 text-[18px] font-black tracking-[0.18em] text-slate-800 uppercase">
+                  NESSUN LAVORO ATTIVO
+                </h3>
+
+                <p className="mt-5 max-w-[280px] text-[15px] font-semibold leading-7 text-slate-400">
+                  Non c&apos;è nessuna lavorazione attiva in questo momento. Crea un
+                  codice prodotto e carica le immagini nella scheda &quot;Nuovo Prodotto&quot;.
                 </p>
-                <p className="mt-1 text-sm font-semibold text-slate-400">
-                  I processi appariranno qui.
-                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('new')}
+                  className="mt-8 rounded-2xl bg-[#1E60F2] px-8 py-4 text-sm font-black tracking-wide text-white shadow-lg shadow-blue-600/20 active:scale-95"
+                >
+                  INIZIA ORA
+                </button>
               </div>
             ) : (
               <div className="mt-5 space-y-3">
@@ -828,6 +857,7 @@ export default function App() {
                   (job.job_images || []).map((image) => {
                     const countdown = getCountdown(image.preview_expires_at);
                     const previewUrl = getPreviewUrl(image);
+                    const formatLabel = (job.output_format || 'jpg').toUpperCase();
 
                     return (
                       <div
@@ -868,12 +898,7 @@ export default function App() {
                             </p>
 
                             <p className="text-[11px] font-semibold text-slate-500">
-                              Pubblico: {job.final_code || '-'}
-                            </p>
-
-                            <p className="text-[11px] font-semibold text-slate-500">
-                              Margine: {job.margin_percentage ?? 15}% · Formato:{' '}
-                              {(job.output_format || 'jpg').toUpperCase()}
+                              Margine: {job.margin_percentage ?? 15}% · {formatLabel}
                             </p>
 
                             {image.error && (
