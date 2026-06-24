@@ -614,21 +614,20 @@ export default function App() {
                 : 'text-slate-400'
             }`}
           >
-            <span className="relative">
+            {visibleJobImagesCount > 0 ? (
+              <span
+                className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[13px] font-black leading-none ${
+                  activeTab === 'status'
+                    ? 'bg-white text-[#1E60F2]'
+                    : 'bg-[#1E60F2] text-white'
+                }`}
+               >
+                  {visibleJobImagesCount}
+               </span>
+            ) : (
               <Clock3 className="h-5 w-5" />
+            )}
 
-              {inProgressImagesCount > 0 && (
-                <span
-                  className={`absolute -right-3 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black leading-none ring-2 ring-white ${
-                    activeTab === 'status'
-                      ? 'bg-white text-[#1E60F2]'
-                      : 'bg-[#1E60F2] text-white'
-                  }`}
-                >
-                  {inProgressImagesCount}
-                </span>
-              )}
-            </span>
 
             STATO LAVORI
           </button>
