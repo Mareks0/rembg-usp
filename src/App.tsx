@@ -84,6 +84,8 @@ export default function App() {
   const [refreshingJobs, setRefreshingJobs] = useState(false);
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
 
+  const [, setClockTick] = useState(0);
+
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -95,6 +97,63 @@ export default function App() {
     selectedImages.length > 0 &&
     !uploading &&
     !isConverting;
+
+  const nowMs = Date.now();
+
+  const isPreviewActive = (expiresAt?: string | null) => {
+    if (!expiresAt) return false;
+    return new Date(expiresAt).getTime() > nowMs;
+  };
+
+  const isVisibleJobImage = (job: Job, image: JobImage) => {
+    const status = image.status || job.status;
+
+    if (status === 'pending' || status === 'processing') {
+      return true;
+    }
+
+    if (status === 'error') {
+      return true;
+    }
+
+    if (status === 'done') {
+      return Boolean(image.result_path && isPreviewActive(image.preview_expires_at));
+    }
+
+    return false;
+  };
+
+  const visibleJobs = jobs
+    .map((job) => ({
+      ...job,
+      job_images: (job.job_images || []).filter((image) =>
+        isVisibleJobImage(job, image)
+      ),
+    }))
+    .filter((job) => job.job_images.length > 0);
+
+  const visibleJobImagesCount = visibleJobs.reduce(
+    (total, job) => total + job.job_images.length,
+    0
+  );
+
+  const inProgressImagesCount = jobs.reduce((total, job) => {
+    return (
+      total +
+      (job.job_images || []).filter((image) => {
+        const status = image.status || job.status;
+        return status === 'pending' || status === 'processing';
+      }).length
+    );
+  }, 0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setClockTick((value) => value + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!hasConfig) {
@@ -323,7 +382,7 @@ export default function App() {
     setUploading(true);
 
     try {
-      const safeMargin = MARGINS.includes(margin) ? margin : 15;
+      const safeMargin = MARGINS.includes(margin) ? margin : 5;
 
       const { data: job, error: jobError } = await supabase
         .from('jobs')
@@ -391,7 +450,7 @@ export default function App() {
   const getCountdown = (expiresAt?: string | null) => {
     if (!expiresAt) return '';
 
-    const diffMs = new Date(expiresAt).getTime() - Date.now();
+    const diffMs = new Date(expiresAt).getTime() - nowMs;
 
     if (diffMs <= 0) return '';
 
@@ -555,7 +614,22 @@ export default function App() {
                 : 'text-slate-400'
             }`}
           >
-            <Clock3 className="h-5 w-5" />
+            <span className="relative">
+              <Clock3 className="h-5 w-5" />
+
+              {inProgressImagesCount > 0 && (
+                <span
+                  className={`absolute -right-3 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black leading-none ring-2 ring-white ${
+                    activeTab === 'status'
+                      ? 'bg-white text-[#1E60F2]'
+                      : 'bg-[#1E60F2] text-white'
+                  }`}
+                >
+                  {inProgressImagesCount}
+                </span>
+              )}
+            </span>
+
             STATO LAVORI
           </button>
         </div>
@@ -810,7 +884,7 @@ export default function App() {
 
         {activeTab === 'status' && (
           <>
-            {jobs.length === 0 ? (
+            {visibleJobImagesCount === 0 ? (
               <section className="mt-5 rounded-[34px] bg-white border border-slate-100 shadow-sm px-6 py-16 flex flex-col items-center justify-center text-center min-h-[360px]">
                 <div className="h-16 w-16 rounded-[22px] border border-slate-200 bg-slate-50 flex items-center justify-center">
                   <Clock3 className="h-8 w-8 text-slate-400" />
@@ -854,7 +928,7 @@ export default function App() {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  {jobs.flatMap((job) =>
+                  {visibleJobs.flatMap((job) =>
                     (job.job_images || []).map((image) => {
                       const countdown = getCountdown(image.preview_expires_at);
                       const previewUrl = getPreviewUrl(image);
@@ -880,7 +954,7 @@ export default function App() {
                               </button>
                             ) : (
                               <div className="h-[93.5px] w-[93.5px] min-w-[93.5px] rounded-[20px] border border-slate-200 bg-white flex items-center justify-center">
-                                {image.status === 'processing' ? (
+                                {image.status === 'processing' || image.status === 'pending' ? (
                                   <Loader2 className="h-7 w-7 animate-spin text-[#1E60F2]" />
                                 ) : (
                                   <ImageIcon className="h-7 w-7 text-slate-300" />
@@ -899,7 +973,7 @@ export default function App() {
                               </p>
 
                               <p className="text-[11px] font-semibold text-slate-500">
-                                Margine: {job.margin_percentage ?? 15}% · {formatLabel}
+                                Margine: {job.margin_percentage ?? 5}% · {formatLabel}
                               </p>
 
                               {image.error && (
@@ -921,9 +995,11 @@ export default function App() {
                                   ? 'bg-emerald-100 text-emerald-700'
                                   : image.status === 'processing'
                                     ? 'bg-blue-100 text-[#1E60F2]'
-                                    : image.status === 'error'
-                                      ? 'bg-rose-100 text-rose-700'
-                                      : 'bg-slate-200 text-slate-600'
+                                    : image.status === 'pending'
+                                      ? 'bg-blue-100 text-[#1E60F2]'
+                                      : image.status === 'error'
+                                        ? 'bg-rose-100 text-rose-700'
+                                        : 'bg-slate-200 text-slate-600'
                               }`}
                             >
                               {image.status || job.status}
