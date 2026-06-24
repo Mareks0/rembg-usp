@@ -7,7 +7,10 @@ type BarcodeScannerProps = {
   onClose: () => void;
 };
 
-export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
+export default function BarcodeScanner({
+  onScan,
+  onClose,
+}: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<any>(null);
   const onScanRef = useRef(onScan);
@@ -54,7 +57,6 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
             if (!result || alreadyScanned) return;
 
             const text = result.getText();
-
             if (!text) return;
 
             alreadyScanned = true;
@@ -96,33 +98,27 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-[520px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4">
+        <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
-            <Camera className="h-5 w-5 text-[#1E60F2]" />
-
-            <div>
-              <h2 className="text-lg font-black text-slate-800">
-                Scanner Barcode
-              </h2>
-              <p className="text-sm font-semibold text-slate-500">
-                Inquadra il codice prodotto
-              </p>
-            </div>
+            <Camera className="h-6 w-6 text-[#1E60F2]" />
+            <h2 className="text-[22px] font-black text-slate-800">
+              Scanner Barcode
+            </h2>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="h-11 w-11 rounded-2xl bg-slate-50 text-slate-500 flex items-center justify-center"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-500 shadow-sm"
           >
-            <X className="h-6 w-6" />
+            <X className="h-8 w-8" />
           </button>
         </div>
 
         <div className="bg-[#020617] p-4">
-          <div className="relative overflow-hidden rounded-2xl bg-black aspect-[4/3] flex items-center justify-center">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] bg-black">
             <video
               ref={videoRef}
               className="h-full w-full object-cover"
@@ -143,10 +139,6 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
               </div>
             )}
           </div>
-        </div>
-
-        <div className="px-5 py-4 text-center text-sm font-semibold text-slate-500">
-          Avvicina il codice a barre, tienilo ben illuminato e orizzontale.
         </div>
       </div>
     </div>
