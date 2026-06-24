@@ -9,13 +9,19 @@ type BarcodeScannerProps = {
 
 export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<any>(null);
+  const onScanRef = useRef(onScan);
+
   const [error, setError] = useState('');
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    let controls: any = null;
+    onScanRef.current = onScan;
+  }, [onScan]);
+
+  useEffect(() => {
     let cancelled = false;
+    let alreadyScanned = false;
 
     const startScanner = async () => {
       try {
@@ -25,9 +31,6 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error('Fotocamera non supportata da questo browser.');
         }
-
-        const reader = new BrowserMultiFormatReader();
-        readerRef.current = reader;
 
         const devices = await BrowserMultiFormatReader.listVideoInputDevices();
 
@@ -42,27 +45,40 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
 
         if (cancelled || !videoRef.current) return;
 
-        controls = await reader.decodeFromVideoDevice(
+        const reader = new BrowserMultiFormatReader();
+
+        controlsRef.current = await reader.decodeFromVideoDevice(
           backCamera.deviceId,
           videoRef.current,
           (result) => {
-            if (result) {
-              const text = result.getText();
+            if (!result || alreadyScanned) return;
 
-              if (text) {
-                onScan(text);
-              }
-            }
+            const text = result.getText();
+
+            if (!text) return;
+
+            alreadyScanned = true;
+
+            try {
+              controlsRef.current?.stop();
+            } catch {}
+
+            onScanRef.current(text);
           }
         );
 
-        setStarted(true);
+        if (!cancelled) {
+          setStarted(true);
+        }
       } catch (err: any) {
         console.error(err);
-        setError(
-          err?.message ||
-            'Impossibile avviare la fotocamera. Controlla i permessi camera e usa HTTPS.'
-        );
+
+        if (!cancelled) {
+          setError(
+            err?.message ||
+              'Impossibile avviare la fotocamera. Controlla i permessi camera e usa HTTPS.'
+          );
+        }
       }
     };
 
@@ -72,14 +88,12 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
       cancelled = true;
 
       try {
-        controls?.stop();
+        controlsRef.current?.stop();
       } catch {}
 
-      try {
-        readerRef.current?.reset();
-      } catch {}
+      controlsRef.current = null;
     };
-  }, [onScan]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
