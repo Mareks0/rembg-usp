@@ -74,7 +74,7 @@ export default function App() {
   const [conversionError, setConversionError] = useState('');
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
-  const [margin, setMargin] = useState(15);
+  const [margin, setMargin] = useState(5);
   const [saveFormat, setSaveFormat] = useState<SaveFormat>('jpg');
 
   const [showScanner, setShowScanner] = useState(false);
@@ -300,7 +300,7 @@ export default function App() {
     setPublicCode('');
     setConversionError('');
     setSelectedImages([]);
-    setMargin(15);
+    setMargin(5);
     setSaveFormat('jpg');
   };
 
@@ -379,7 +379,7 @@ export default function App() {
       if (readyError) throw readyError;
 
       resetForm();
-      setActiveTab('status');
+      setActiveTab('new');
       await loadRecentJobs(false);
     } catch (error: any) {
       alert(error.message || 'Errore durante il processo.');
