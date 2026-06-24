@@ -507,7 +507,7 @@ export default function App() {
 
             <div>
               <h1 className="text-[24px] font-black text-slate-800 leading-none">
-                Rembg USP
+                Foto Ric USP
               </h1>
 
               <p className="mt-1 text-sm font-semibold text-slate-500">

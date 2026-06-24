@@ -103,7 +103,7 @@ export default function BarcodeScanner({
         <div className="flex items-center justify-between px-5 py-5">
           <div className="flex items-center gap-3">
             <Camera className="h-6 w-6 text-[#1E60F2]" />
-            <h2 className="text-[22px] font-black text-slate-800">
+            <h2 className="text-[18px] font-black text-slate-800">
               Scanner Barcode
             </h2>
           </div>
