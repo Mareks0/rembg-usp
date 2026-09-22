@@ -56,6 +56,8 @@ type Job = {
 const MAX_IMAGES = 5;
 const BUCKET_NAME = 'product-images';
 const MARGINS = [5, 10, 15, 20];
+const EXISTING_IMAGE_BASE_URL = 'https://netlabimages.netlabsystem.it/362/Standard';
+const MAX_EXISTING_IMAGES_TO_CHECK = 10;
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -72,6 +74,10 @@ export default function App() {
   const [publicCode, setPublicCode] = useState('');
   const [isConverting, setIsConverting] = useState(false);
   const [conversionError, setConversionError] = useState('');
+
+  const [checkingExistingImages, setCheckingExistingImages] = useState(false);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingImagesChecked, setExistingImagesChecked] = useState(false);
 
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [margin, setMargin] = useState(5);
@@ -137,16 +143,6 @@ export default function App() {
     0
   );
 
-  const inProgressImagesCount = jobs.reduce((total, job) => {
-    return (
-      total +
-      (job.job_images || []).filter((image) => {
-        const status = image.status || job.status;
-        return status === 'pending' || status === 'processing';
-      }).length
-    );
-  }, 0);
-
   useEffect(() => {
     const timer = window.setInterval(() => {
       setClockTick((value) => value + 1);
@@ -192,6 +188,9 @@ export default function App() {
     if (!cleanedProductCode) {
       setPublicCode('');
       setConversionError('');
+      setExistingImages([]);
+      setExistingImagesChecked(false);
+      setCheckingExistingImages(false);
       return;
     }
 
@@ -201,6 +200,17 @@ export default function App() {
 
     return () => window.clearTimeout(timer);
   }, [cleanedProductCode]);
+
+  useEffect(() => {
+    if (!publicCode) {
+      setExistingImages([]);
+      setExistingImagesChecked(false);
+      setCheckingExistingImages(false);
+      return;
+    }
+
+    checkExistingProductImages(publicCode);
+  }, [publicCode]);
 
   const handleLogin = async () => {
     setAuthLoading(true);
@@ -242,6 +252,55 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
+  const checkImageUrl = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const image = new Image();
+
+      image.onload = () => resolve(true);
+      image.onerror = () => resolve(false);
+
+      image.src = `${url}?check=${Date.now()}`;
+    });
+  };
+
+  const checkExistingProductImages = async (code: string) => {
+    const cleanCode = code.trim();
+
+    if (!cleanCode) {
+      setExistingImages([]);
+      setExistingImagesChecked(false);
+      return;
+    }
+
+    setCheckingExistingImages(true);
+    setExistingImages([]);
+    setExistingImagesChecked(false);
+
+    try {
+      const urls = Array.from({ length: MAX_EXISTING_IMAGES_TO_CHECK }, (_, index) => {
+        const imageNumber = index + 1;
+        return `${EXISTING_IMAGE_BASE_URL}/${cleanCode}-${imageNumber}.png`;
+      });
+
+      const results = await Promise.all(
+        urls.map(async (url) => {
+          const exists = await checkImageUrl(url);
+          return exists ? url : null;
+        })
+      );
+
+      const foundImages = results.filter(Boolean) as string[];
+
+      setExistingImages(foundImages);
+      setExistingImagesChecked(true);
+    } catch {
+      setExistingImages([]);
+      setExistingImagesChecked(true);
+    } finally {
+      setCheckingExistingImages(false);
+    }
+  };
+
   const convertProductCode = async (code: string) => {
     const cleanCode = code.trim();
 
@@ -250,6 +309,9 @@ export default function App() {
     setIsConverting(true);
     setPublicCode('');
     setConversionError('');
+    setExistingImages([]);
+    setExistingImagesChecked(false);
+    setCheckingExistingImages(false);
 
     try {
       const response = await fetch('/api/convert-code', {
@@ -358,6 +420,9 @@ export default function App() {
     setProductCode('');
     setPublicCode('');
     setConversionError('');
+    setExistingImages([]);
+    setExistingImagesChecked(false);
+    setCheckingExistingImages(false);
     setSelectedImages([]);
     setMargin(5);
     setSaveFormat('jpg');
@@ -621,13 +686,12 @@ export default function App() {
                     ? 'bg-white text-[#1E60F2]'
                     : 'bg-[#1E60F2] text-white'
                 }`}
-               >
-                  {visibleJobImagesCount}
-               </span>
+              >
+                {visibleJobImagesCount}
+              </span>
             ) : (
               <Clock3 className="h-5 w-5" />
             )}
-
 
             STATO LAVORI
           </button>
@@ -650,6 +714,9 @@ export default function App() {
                       setProductCode(event.target.value);
                       setPublicCode('');
                       setConversionError('');
+                      setExistingImages([]);
+                      setExistingImagesChecked(false);
+                      setCheckingExistingImages(false);
                     }}
                     placeholder="Codice Articolo"
                     className="w-full bg-transparent text-base font-bold text-slate-700 placeholder:text-slate-400 outline-none"
@@ -673,13 +740,61 @@ export default function App() {
               )}
 
               {publicCode && (
-                <div className="mt-3 rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
-                  <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">
-                    Codice pubblico
-                  </p>
-                  <p className="mt-1 text-lg font-black text-emerald-800">
-                    {publicCode}
-                  </p>
+                <div className="mt-3">
+                  <div className="relative rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 pr-12">
+                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">
+                      Codice pubblico
+                    </p>
+
+                    <p className="mt-1 text-lg font-black text-emerald-800">
+                      {publicCode}
+                    </p>
+
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      {checkingExistingImages ? (
+                        <span className="flex h-4 w-4 items-center justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                        </span>
+                      ) : existingImagesChecked && existingImages.length > 0 ? (
+                        <span className="block h-4 w-4 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+                      ) : existingImagesChecked ? (
+                        <span className="block h-4 w-4 rounded-full bg-rose-500 ring-4 ring-rose-100" />
+                      ) : (
+                        <span className="block h-4 w-4 rounded-full bg-slate-300 ring-4 ring-slate-100" />
+                      )}
+                    </div>
+                  </div>
+
+                  {existingImages.length > 0 && (
+                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-black uppercase tracking-wide text-slate-600">
+                          Immagini già presenti
+                        </p>
+
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700">
+                          {existingImages.length}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-4 gap-2">
+                        {existingImages.map((url, index) => (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() => setActivePreviewUrl(url)}
+                            className="aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white"
+                          >
+                            <img
+                              src={url}
+                              alt={`Immagine esistente ${index + 1}`}
+                              className="h-full w-full object-contain"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1038,7 +1153,7 @@ export default function App() {
 
             <img
               src={activePreviewUrl}
-              alt="Anteprima processata"
+              alt="Anteprima"
               className="max-h-[80vh] w-full object-contain"
             />
           </div>
